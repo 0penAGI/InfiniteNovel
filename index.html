@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Novel | 0penAGI Quantum Narrative AI</title>
+    <style>
+        /* CSS Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Typography */
+        @font-face {
+            font-family: 'Monospace';
+            src: local('Courier New'), local('Monaco'), local('Consolas'), monospace;
+        }
+
+        body {
+            font-family: 'Monospace', monospace;
+            background: #000000;
+            color: #ffffff;
+            line-height: 1.6;
+            min-height: 100vh;
+            -webkit-font-smoothing: none;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+
+        /* WebGL Canvas */
+        #webgl-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.7;
+        }
+
+        /* Terminal-like effect overlay */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+            background-size: 100% 2px, 10px 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        /* Main content overlay */
+        .content-overlay {
+            position: relative;
+            z-index: 1;
+            background: rgba(0, 0, 0, 0.85);
+            min-height: 100vh;
+            backdrop-filter: blur(2px);
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            border: 2px solid #fff;
+            padding: 3rem 2rem;
+            margin-bottom: 3rem;
+            position: relative;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .header::after {
+            content: "█";
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            font-size: 24px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .logo {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .game-screenshot {
+            flex: 1;
+            min-width: 300px;
+            border: 2px solid #fff;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .game-screenshot img {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.5s;
+        }
+
+        .game-screenshot:hover img {
+            transform: scale(1.05);
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            letter-spacing: -0.05em;
+            line-height: 1;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+            opacity: 0.8;
+        }
+
+        .ascii-art {
+            font-family: monospace;
+            white-space: pre;
+            font-size: 0.6rem;
+            line-height: 1;
+            margin: 2rem 0;
+            opacity: 0.7;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1rem;
+            border: 1px solid #333;
+        }
+
+        /* Content Sections */
+        .section {
+            grid-column: span 6;
+            border: 1px solid #fff;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            background: rgba(0, 0, 0, 0.8);
+            position: relative;
+            backdrop-filter: blur(5px);
+        }
+
+        .section-full {
+            grid-column: 1 / -1;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::before {
+            content: ">";
+            opacity: 0.5;
+        }
+
+        /* Lists */
+        .list {
+            list-style: none;
+        }
+
+        .list-item {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .list-item::before {
+            content: "▶";
+            position: absolute;
+            left: 0;
+            opacity: 0.5;
+        }
+
+        /* Code Blocks */
+        .code-block {
+            background: rgba(17, 17, 17, 0.9);
+            border: 1px solid #333;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            font-family: 'Monospace', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            overflow-x: auto;
+            position: relative;
+            backdrop-filter: blur(3px);
+        }
+
+        .code-block::before {
+            content: attr(data-lang);
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #333;
+            color: #fff;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        .comment {
+            color: #888;
+        }
+
+        .command {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        /* Requirements */
+        .requirements-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .requirements-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .requirement {
+            border: 1px solid #333;
+            padding: 1rem;
+            background: rgba(17, 17, 17, 0.9);
+            backdrop-filter: blur(3px);
+        }
+
+        .requirement-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.1em;
+            color: #aaa;
+        }
+
+        /* Installation Steps */
+        .installation-steps {
+            counter-reset: step;
+        }
+
+        .step {
+            margin-bottom: 2rem;
+            padding-left: 3rem;
+            position: relative;
+        }
+
+        .step::before {
+            counter-increment: step;
+            content: "STEP " counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-size: 0.8rem;
+            opacity: 0.5;
+            letter-spacing: 0.1em;
+        }
+
+        /* Buttons */
+        .buttons {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 1rem;
+            margin: 3rem 0;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 1rem 2rem;
+            border: 2px solid #fff;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(5px);
+        }
+
+        .btn:hover {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+        }
+
+        .btn::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::after {
+            left: 100%;
+        }
+
+        /* Gallery */
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .gallery-item {
+            border: 1px solid #333;
+            overflow: hidden;
+            position: relative;
+            transition: transform 0.3s;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .gallery-caption {
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.8);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        /* Footer */
+        .footer {
+            grid-column: 1 / -1;
+            border-top: 2px solid #fff;
+            padding: 3rem 0;
+            margin-top: 3rem;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+
+        .footer-link {
+            color: #fff;
+            text-decoration: none;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+            position: relative;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .footer-link:hover {
+            opacity: 1;
+        }
+
+        .footer-link::after {
+            content: "";
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: #fff;
+            transition: width 0.3s;
+        }
+
+        .footer-link:hover::after {
+            width: 100%;
+        }
+
+        /* Progress Bars */
+        .progress-container {
+            margin: 1rem 0;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .progress-bar {
+            height: 2px;
+            background: #333;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #fff;
+            width: 0;
+            animation: progress 2s ease-in-out forwards;
+        }
+
+        @keyframes progress {
+            to { width: var(--progress); }
+        }
+
+        /* ASCII Diagram */
+        .ascii-diagram {
+            font-family: monospace;
+            white-space: pre;
+            font-size: 0.7rem;
+            line-height: 1.2;
+            background: rgba(17, 17, 17, 0.9);
+            padding: 1.5rem;
+            border: 1px solid #333;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+            backdrop-filter: blur(3px);
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            border: 1px solid #333;
+            background: rgba(17, 17, 17, 0.9);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .section {
+                grid-column: span 12;
+            }
+            
+            h1 {
+                font-size: 3rem;
+            }
+            
+            .grid {
+                padding: 1rem;
+            }
+            
+            .logo-container {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                text-align: center;
+                justify-content: center;
+            }
+            
+            .ascii-diagram, .ascii-art {
+                font-size: 0.5rem;
+                overflow-x: auto;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            #webgl-canvas, .content-overlay::before {
+                display: none;
+            }
+            
+            .btn {
+                border: 1px solid #000;
+                background: #fff;
+                color: #000;
+            }
+            
+            .code-block {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- WebGL Canvas for Shader Background -->
+    <canvas id="webgl-canvas"></canvas>
+    
+    <!-- Main Content -->
+    <div class="content-overlay">
+        <div class="grid">
+            <!-- Header with Logo and Screenshot -->
+            <header class="header">
+                <div class="logo-container">
+                    <div class="logo">
+                        <h1>INFINITE NOVEL</h1>
+                        <div class="tagline">QUANTUM NARRATIVE AI SYSTEM</div>
+                        
+                        <div class="ascii-art">
+  ██╗███╗   ██╗███████╗██╗███╗   ██╗██╗████████╗███████╗   ███╗   ██╗ ██████╗ ██╗   ██╗███████╗██╗     
+  ██║████╗  ██║██╔════╝██║████╗  ██║██║╚══██╔══╝██╔════╝   ████╗  ██║██╔═══██╗██║   ██║██╔════╝██║     
+  ██║██╔██╗ ██║█████╗  ██║██╔██╗ ██║██║   ██║   █████╗     ██╔██╗ ██║██║   ██║██║   ██║█████╗  ██║     
+  ██║██║╚██╗██║██╔══╝  ██║██║╚██╗██║██║   ██║   ██╔══╝     ██║╚██╗██║██║   ██║╚██╗ ██╔╝██╔══╝  ██║     
+  ██║██║ ╚████║██║     ██║██║ ╚████║██║   ██║   ███████╗   ██║ ╚████║╚██████╔╝ ╚████╔╝ ███████╗███████╗
+  ╚═╝╚═╝  ╚═══╝╚═╝     ╚═╝╚═╝  ╚═══╝╚═╝   ╚═╝   ╚══════╝   ╚═╝  ╚═══╝ ╚═════╝   ╚═══╝  ╚══════╝╚══════╝
+                        </div>
+                    </div>
+                    
+                    <div class="game-screenshot">
+                        <img src="https://raw.githubusercontent.com/0penAGI/InfiniteNovel/main/nolev.png" alt="Infinite Novel Game Screenshot" onerror="this.src='https://via.placeholder.com/600x400/000/fff?text=Infinite+Novel+Screenshot'">
+                    </div>
+                </div>
+                
+                <div class="ascii-art">
+┌─────────────────────────────────────────────────────┐
+│               0penAGI RESEARCH PROJECT              │
+├─────────────────────────────────────────────────────┤
+│  REPOSITORY: github.com/0penAGI/InfiniteNovel       │
+│  VERSION:    v1.0.0-alpha                           │
+│  LICENSE:    OPEN SOURCE                            │
+│  STATUS:     QUANTUM NARRATIVE ACTIVE               │
+└─────────────────────────────────────────────────────┘
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>SYSTEM INITIALIZATION</span>
+                        <span>100%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="--progress: 100%;"></div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats -->
+            <section class="section section-full">
+                <h2 class="section-title">SYSTEM STATISTICS</h2>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value">11K+</div>
+                        <div class="stat-label">Lines of Code</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">7</div>
+                        <div class="stat-label">AI Models</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">4</div>
+                        <div class="stat-label">Story Arcs</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">∞</div>
+                        <div class="stat-label">Narrative Paths</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Features -->
+            <section class="section">
+                <h2 class="section-title">CORE FEATURES</h2>
+                <ul class="list">
+                    <li class="list-item"><strong>Quantum Neural Narrative Generation</strong> - AI-driven story progression</li>
+                    <li class="list-item"><strong>Real-time Stable Diffusion Visuals</strong> - Dynamic image generation</li>
+                    <li class="list-item"><strong>Adaptive Fractal Memory System</strong> - Remembers player choices</li>
+                    <li class="list-item"><strong>Dynamic Cinematic Soundtrack</strong> - AI-generated music</li>
+                    <li class="list-item"><strong>AI Voice Synthesis (Tacotron2)</strong> - Full voice narration</li>
+                    <li class="list-item"><strong>Gemma3 via Ollama Integration</strong> - Local LLM processing</li>
+                    <li class="list-item"><strong>Branching Narrative Architecture</strong> - Multiple story paths</li>
+                    <li class="list-item"><strong>World State Collapse Mechanics</strong> - Dynamic failure states</li>
+                </ul>
+            </section>
+
+            <!-- Tech Stack -->
+            <section class="section">
+                <h2 class="section-title">TECHNOLOGY STACK</h2>
+                <ul class="list">
+                    <li class="list-item"><strong>PyGame 2.5.2</strong> - Rendering Engine & Graphics</li>
+                    <li class="list-item"><strong>PyTorch 2.0+</strong> - Neural Networks Framework</li>
+                    <li class="list-item"><strong>Stable Diffusion 1.5</strong> - Real-time Image Generation</li>
+                    <li class="list-item"><strong>Transformers 4.35+</strong> - NLP & Sentiment Analysis</li>
+                    <li class="list-item"><strong>TTS (Tacotron2-DDC)</strong> - Voice Synthesis System</li>
+                    <li class="list-item"><strong>OpenCV 4.8</strong> - Visual Processing & Effects</li>
+                    <li class="list-item"><strong>NumPy/SciPy</strong> - Mathematical Operations</li>
+                    <li class="list-item"><strong>Asyncio</strong> - Concurrent Processing</li>
+                </ul>
+            </section>
+
+            <!-- System Architecture -->
+            <section class="section section-full">
+                <h2 class="section-title">SYSTEM ARCHITECTURE</h2>
+                
+                <div class="ascii-diagram">
+┌─────────────────────────────────────────────────────────────┐
+│                     PULSE CORE ENGINE                       │
+├──────────────┬──────────────┬────────────────┬──────────────┤
+│  QUANTUM     │  FRACTAL     │   STORY        │   WORLD      │
+│  MEMORY      │  MEMORY      │   DIRECTOR     │   STATE      │
+├──────────────┼──────────────┼────────────────┼──────────────┤
+│  • State     │  • LSTM      │  • Arc         │  • Collapse  │
+│  • Transitions│  • Quantum  │  • Beat        │  • Instability│
+│  • Prediction │  • Context  │  • Threads     │  • Locks     │
+└──────────────┴──────────────┴────────────────┴──────────────┘
+         │              │               │               │
+         ▼              ▼               ▼               ▼
+┌──────────────┬──────────────┬────────────────┬──────────────┐
+│   IMAGE      │    AUDIO     │     TEXT       │    INPUT     │
+│   PIPELINE   │   PIPELINE   │   PIPELINE     │   PROCESSOR  │
+├──────────────┼──────────────┼────────────────┼──────────────┤
+│  • SD 1.5    │  • Music Gen │  • Gemma3      │  • Action    │
+│  • Morphing  │  • TTS       │  • Sentiment   │  • Intent    │
+│  • Effects   │  • Effects   │  • Dialogue    │  • Impact    │
+└──────────────┴──────────────┴────────────────┴──────────────┘
+                </div>
+            </section>
+
+            <!-- Screenshots Gallery -->
+            <section class="section section-full">
+                <h2 class="section-title">VISUAL EXPERIENCE</h2>
+                <div class="gallery">
+                    <div class="gallery-item">
+                        <img src="https://raw.githubusercontent.com/0penAGI/InfiniteNovel/main/nolev.png" alt="Game Interface" onerror="this.src='https://via.placeholder.com/300x200/000/fff?text=Game+Interface'">
+                        <div class="gallery-caption">Cinematic Widescreen Interface</div>
+                    </div>
+                    <div class="gallery-item">
+                        <img src="https://raw.githubusercontent.com/0penAGI/InfiniteNovel/main/novel.png" alt="Narrative Display" onerror="this.src='https://via.placeholder.com/300x200/000/fff?text=Narrative+Display'">
+                        <div class="gallery-caption">Dynamic Narrative Generation</div>
+                    </div>
+                    <div class="gallery-item">
+                        <img src="https://images.unsplash.com/photo-1635070041078-e363dbe005cb?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="AI Generated Art">
+                        <div class="gallery-caption">AI-Generated Visuals</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Requirements -->
+            <section class="section section-full">
+                <h2 class="section-title">SYSTEM REQUIREMENTS</h2>
+                
+                <div class="requirements-grid">
+                    <div class="requirement">
+                        <div class="requirement-title">HARDWARE</div>
+                        <p>NVIDIA GPU (8GB+ VRAM)<br>
+                           Apple Silicon M1/M2<br>
+                           16GB RAM minimum<br>
+                           5GB disk space</p>
+                    </div>
+                    
+                    <div class="requirement">
+                        <div class="requirement-title">SOFTWARE</div>
+                        <p>Python 3.8+<br>
+                           Ollama (local)<br>
+                           Git<br>
+                           CUDA 11.8 (optional)</p>
+                    </div>
+                    
+                    <div class="requirement">
+                        <div class="requirement-title">AI MODELS</div>
+                        <p>Stable Diffusion 1.5<br>
+                           Gemma3:1b via Ollama<br>
+                           Tacotron2-DDC<br>
+                           DistilBERT</p>
+                    </div>
+                    
+                    <div class="requirement">
+                        <div class="requirement-title">DEPENDENCIES</div>
+                        <p>PyTorch 2.0+<br>
+                           Transformers 4.35+<br>
+                           Diffusers<br>
+                           PyGame 2.5+</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Installation -->
+            <section class="section section-full">
+                <h2 class="section-title">INSTALLATION PROCEDURE</h2>
+                
+                <div class="installation-steps">
+                    <div class="step">
+                        <h3>CLONE REPOSITORY</h3>
+                        <div class="code-block" data-lang="bash">
+<code><span class="command">git clone https://github.com/0penAGI/InfiniteNovel.git</span>
+<span class="command">cd InfiniteNovel</span></code>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <h3>INSTALL DEPENDENCIES</h3>
+                        <div class="code-block" data-lang="bash">
+<code><span class="command">pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118</span>
+<span class="command">pip install -r requirements.txt</span></code>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <h3>SETUP OLLAMA</h3>
+                        <div class="code-block" data-lang="bash">
+<code><span class="comment"># Install Ollama from https://ollama.com</span>
+<span class="command">ollama pull gemma3:1b</span>
+<span class="command">ollama serve</span>
+<span class="comment"># Keep Ollama running in background</span></code>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <h3>RUN INFINITENOVEL</h3>
+                        <div class="code-block" data-lang="bash">
+<code><span class="command">python infinite_novel.py</span>
+<span class="comment"># Press ESC to toggle fullscreen
+# Enter text commands to interact
+# Type your story choices and press Enter</span></code>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Start -->
+            <section class="section section-full">
+                <h2 class="section-title">QUICK START COMMANDS</h2>
+                
+                <div class="code-block" data-lang="bash">
+<code><span class="comment"># One-liner installation (for advanced users)</span>
+<span class="command">git clone https://github.com/0penAGI/InfiniteNovel.git && cd InfiniteNovel && pip install -r requirements.txt</span>
+
+<span class="comment"># Run with GPU acceleration (Linux/macOS)</span>
+<span class="command">CUDA_VISIBLE_DEVICES=0 python infinite_novel.py</span>
+
+<span class="comment"># Run with MPS acceleration (Apple Silicon)</span>
+<span class="command">PYTORCH_ENABLE_MPS_FALLBACK=1 python infinite_novel.py</span>
+
+<span class="comment"># Update the repository</span>
+<span class="command">git pull origin main</span></code>
+                </div>
+            </section>
+
+            <!-- Buttons -->
+            <div class="buttons">
+                <a href="https://github.com/0penAGI/InfiniteNovel" class="btn" target="_blank">
+                    <span>VIEW ON GITHUB</span>
+                </a>
+                <a href="https://github.com/0penAGI/InfiniteNovel/archive/refs/heads/main.zip" class="btn" download>
+                    <span>DOWNLOAD SOURCE</span>
+                </a>
+                <a href="https://github.com/0penAGI" class="btn" target="_blank">
+                    <span>0penAGI ORG</span>
+                </a>
+                <a href="https://github.com/0penAGI/InfiniteNovel/issues" class="btn" target="_blank">
+                    <span>REPORT ISSUES</span>
+                </a>
+            </div>
+
+            <!-- Footer -->
+            <footer class="footer">
+                <div class="ascii-art" style="font-size: 0.4rem; margin-bottom: 2rem; text-align: center;">
+  ██████╗ ██████╗ ███████╗███╗   ██╗ █████╗  ██████╗ ██╗
+  ██╔══██╗██╔══██╗██╔════╝████╗  ██║██╔══██╗██╔════╝ ██║
+  ██████╔╝██████╔╝█████╗  ██╔██╗ ██║███████║██║  ███╗██║
+  ██╔═══╝ ██╔══██╗██╔══╝  ██║╚██╗██║██╔══██║██║   ██║██║
+  ██║     ██║  ██║███████╗██║ ╚████║██║  ██║╚██████╔╝███████╗
+  ╚═╝     ╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝
+                </div>
+                
+                <p>INFINITE NOVEL | 0penAGI RESEARCH PROJECT</p>
+                <p>QUANTUM NARRATIVE AI SYSTEM v1.0</p>
+                
+                <div class="footer-links">
+                    <a href="https://github.com/0penAGI/InfiniteNovel/issues" class="footer-link" target="_blank">ISSUES</a>
+                    <a href="https://github.com/0penAGI/InfiniteNovel/wiki" class="footer-link" target="_blank">WIKI</a>
+                    <a href="https://github.com/0penAGI/InfiniteNovel/blob/main/LICENSE" class="footer-link" target="_blank">LICENSE</a>
+                    <a href="https://github.com/0penAGI/InfiniteNovel/discussions" class="footer-link" target="_blank">DISCUSS</a>
+                    <a href="https://github.com/0penAGI/InfiniteNovel/pulls" class="footer-link" target="_blank">CONTRIBUTE</a>
+                </div>
+                
+                <div style="margin-top: 2rem; font-size: 0.8rem; opacity: 0.6;">
+                    <p>REPOSITORY: github.com/0penAGI/InfiniteNovel</p>
+                    <p>SYSTEM STATUS: OPERATIONAL | BUILD: 2024.01 | QUANTUM NARRATIVE: ACTIVE</p>
+                    <p>© 2024 0penAGI. ALL RIGHTS RESERVED. | OPEN SOURCE AGI RESEARCH</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- WebGL Shader Script -->
+    <script>
+        // Initialize WebGL
+        const canvas = document.getElementById('webgl-canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        
+        if (!gl) {
+            console.error('WebGL not supported');
+            canvas.style.display = 'none';
+        } else {
+            // Set canvas size
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                gl.viewport(0, 0, canvas.width, canvas.height);
+            }
+            
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+            
+            // Vertex shader
+            const vertexShaderSource = `
+                attribute vec2 a_position;
+                varying vec2 v_texCoord;
+                void main() {
+                    gl_Position = vec4(a_position, 0.0, 1.0);
+                    v_texCoord = a_position * 0.5 + 0.5;
+                }
+            `;
+            
+            // Fragment shader - inspired by Infinite Novel's quantum network
+            const fragmentShaderSource = `
+                precision highp float;
+                varying vec2 v_texCoord;
+                uniform float u_time;
+                uniform vec2 u_resolution;
+                
+                float random(vec2 st) {
+                    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+                }
+                
+                float noise(vec2 st) {
+                    vec2 i = floor(st);
+                    vec2 f = fract(st);
+                    
+                    float a = random(i);
+                    float b = random(i + vec2(1.0, 0.0));
+                    float c = random(i + vec2(0.0, 1.0));
+                    float d = random(i + vec2(1.0, 1.0));
+                    
+                    vec2 u = f * f * (3.0 - 2.0 * f);
+                    
+                    return mix(a, b, u.x) + 
+                           (c - a)* u.y * (1.0 - u.x) + 
+                           (d - b) * u.x * u.y;
+                }
+                
+                float fbm(vec2 st) {
+                    float value = 0.0;
+                    float amplitude = 0.5;
+                    float frequency = 1.0;
+                    
+                    for (int i = 0; i < 6; i++) {
+                        value += amplitude * noise(st * frequency);
+                        amplitude *= 0.5;
+                        frequency *= 2.0;
+                    }
+                    
+                    return value;
+                }
+                
+                void main() {
+                    vec2 st = v_texCoord * 2.0 - 1.0;
+                    st.x *= u_resolution.x / u_resolution.y;
+                    
+                    float time = u_time * 0.1;
+                    
+                    // Quantum network pattern
+                    float pattern = 0.0;
+                    
+                    // Pulsing network nodes
+                    for (int i = 0; i < 8; i++) {
+                        float fi = float(i);
+                        vec2 nodePos = vec2(
+                            sin(time * 0.3 + fi * 1.2) * 0.5,
+                            cos(time * 0.4 + fi * 1.5) * 0.5
+                        );
+                        
+                        float dist = length(st - nodePos);
+                        pattern += 0.03 / (dist + 0.02) * sin(time * 2.0 + fi);
+                    }
+                    
+                    // Fractal noise for quantum foam
+                    float foam = fbm(st * 3.0 + time * 0.5);
+                    
+                    // Energy waves
+                    float waves = sin(st.x * 8.0 + time * 2.0) * 
+                                  sin(st.y * 6.0 + time * 1.5) * 0.1;
+                    
+                    // Neural connections
+                    float connections = 0.0;
+                    for (int i = 0; i < 4; i++) {
+                        float fi = float(i);
+                        float angle = time * 0.2 + fi * 1.57;
+                        vec2 dir = vec2(cos(angle), sin(angle));
+                        float projection = dot(st, dir);
+                        connections += sin(projection * 20.0 + time * 3.0) * 0.05;
+                    }
+                    
+                    // Combine all effects
+                    float finalPattern = pattern + foam * 0.3 + waves + connections;
+                    
+                    // Quantum state interference
+                    float interference = sin(length(st) * 15.0 - time * 3.0) * 0.1;
+                    
+                    // Final color - monochrome with subtle variations
+                    float brightness = finalPattern + interference;
+                    
+                    // Add scanlines
+                    float scanline = sin(st.y * u_resolution.y * 0.7 + time * 5.0) * 0.02;
+                    
+                    // CRT curvature
+                    vec2 crtSt = st * 0.9;
+                    crtSt *= 1.0 + dot(crtSt, crtSt) * 0.1;
+                    float vignette = 1.0 - smoothstep(0.0, 1.2, length(crtSt));
+                    
+                    brightness = brightness * vignette + scanline;
+                    
+                    // Quantum state colors (subtle)
+                    float r = brightness * 0.9;
+                    float g = brightness * 1.0;
+                    float b = brightness * 1.1;
+                    
+                    // Add random quantum noise
+                    float quantumNoise = random(st + time) * 0.03;
+                    
+                    gl_FragColor = vec4(r + quantumNoise, g + quantumNoise, b + quantumNoise, 0.3);
+                }
+            `;
+            
+            // Compile shader
+            function compileShader(source, type) {
+                const shader = gl.createShader(type);
+                gl.shaderSource(shader, source);
+                gl.compileShader(shader);
+                
+                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                    console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+                    gl.deleteShader(shader);
+                    return null;
+                }
+                
+                return shader;
+            }
+            
+            // Create program
+            const vertexShader = compileShader(vertexShaderSource, gl.VERTEX_SHADER);
+            const fragmentShader = compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
+            
+            const program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error('Program link error:', gl.getProgramInfoLog(program));
+            }
+            
+            gl.useProgram(program);
+            
+            // Set up vertices
+            const vertices = new Float32Array([
+                -1, -1,
+                 1, -1,
+                -1,  1,
+                 1,  1,
+            ]);
+            
+            const vertexBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+            
+            const positionAttribute = gl.getAttribLocation(program, 'a_position');
+            gl.enableVertexAttribArray(positionAttribute);
+            gl.vertexAttribPointer(positionAttribute, 2, gl.FLOAT, false, 0, 0);
+            
+            // Get uniform locations
+            const timeUniform = gl.getUniformLocation(program, 'u_time');
+            const resolutionUniform = gl.getUniformLocation(program, 'u_resolution');
+            
+            // Animation loop
+            let startTime = Date.now();
+            
+            function animate() {
+                const currentTime = (Date.now() - startTime) * 0.001;
+                
+                gl.uniform1f(timeUniform, currentTime);
+                gl.uniform2f(resolutionUniform, canvas.width, canvas.height);
+                
+                gl.clearColor(0, 0, 0, 1);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+                
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+                
+                requestAnimationFrame(animate);
+            }
+            
+            animate();
+        }
+        
+        // Terminal typing effect
+        document.addEventListener('DOMContentLoaded', function() {
+            const title = document.querySelector('h1');
+            const originalText = title.textContent;
+            title.textContent = '';
+            
+            let i = 0;
+            function typeWriter() {
+                if (i < originalText.length) {
+                    title.textContent += originalText.charAt(i);
+                    i++;
+                    setTimeout(typeWriter, 30);
+                }
+            }
+            
+            setTimeout(typeWriter, 500);
+            
+            // Progress bar animations
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const progress = bar.style.getPropertyValue('--progress');
+                bar.style.width = progress;
+            });
+            
+            // Add interactive effects to code blocks
+            const codeBlocks = document.querySelectorAll('.code-block');
+            codeBlocks.forEach(block => {
+                block.addEventListener('mouseenter', () => {
+                    block.style.borderColor = '#666';
+                });
+                block.addEventListener('mouseleave', () => {
+                    block.style.borderColor = '#333';
+                });
+            });
+            
+            // Add click effects to buttons
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const ripple = document.createElement('span');
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size / 2;
+                    const y = e.clientY - rect.top - size / 2;
+                    
+                    ripple.style.cssText = `
+                        position: absolute;
+                        border-radius: 50%;
+                        background: rgba(255, 255, 255, 0.3);
+                        transform: scale(0);
+                        animation: ripple 0.6s linear;
+                        width: ${size}px;
+                        height: ${size}px;
+                        top: ${y}px;
+                        left: ${x}px;
+                    `;
+                    
+                    this.appendChild(ripple);
+                    
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 600);
+                });
+            });
+            
+            // Add CSS for ripple effect
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes ripple {
+                    to {
+                        transform: scale(4);
+                        opacity: 0;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Parallax effect on scroll
+            window.addEventListener('scroll', function() {
+                const scrolled = window.pageYOffset;
+                const canvas = document.getElementById('webgl-canvas');
+                if (canvas) {
+                    canvas.style.transform = `translateY(${scrolled * 0.1}px)`;
+                }
+            });
+            
+            // Add pulse animation to stats
+            const stats = document.querySelectorAll('.stat-value');
+            stats.forEach((stat, index) => {
+                setTimeout(() => {
+                    stat.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        stat.style.transform = 'scale(1)';
+                    }, 300);
+                }, index * 200);
+            });
+        });
+    </script>
+</body>
+</html>
