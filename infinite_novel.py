@@ -765,7 +765,7 @@ async def generate_image(core, prompt, mood_score=0.0):
         return None, 0.0  # уже генерируется
 
     # Новый промпт: используем последнее событие и текущую дугу
-    last_event = core.memory.get("world_state", {}).get("last_event", "")
+    last_event = core.world_state.get("last_event", "")
     arc = getattr(core.story, "arc", "awakening")
     image_prompt = (
         f"cinematic sci-fi scene, {arc} arc, {last_event}, emotional, high contrast, no text"
@@ -919,7 +919,7 @@ def generate_event(core, action_text, action_impact, focus):
     действие пользователя + нити + визуальный контекст -> сюжетный ответ -> конкретное событие мира.
     """
     # === ACTION LOCKS ===
-    if core.story.arc == "rupture" and "create" in action_text:
+    if getattr(core.story, "arc", None) == "rupture" and "create" in action_text:
         core.world_state["locks"].add("creation")
         return (
             "System",
@@ -959,26 +959,27 @@ def generate_event(core, action_text, action_impact, focus):
             "dark": "A shroud of darkness envelops a sector.",
         }.get(strongest_thread, None)
     # Если нет подходящей сюжетной нити, используем стандартное событие дуги
+    story_arc = getattr(core.story, "arc", "awakening")
     world_event = thread_event or {
         "awakening": "A new node ignites within the network.",
         "convergence": "Factions draw closer as old boundaries dissolve.",
         "rupture": "A rupture occurs. One of the paths collapses.",
         "synthesis": "The world restructures into a more stable form."
-    }[core.story.arc]
+    }[story_arc]
 
     # Фиксируем изменения мира
     core.memory["world_state"]["last_event"] = world_event  # только для изображения
-    core.memory["world_state"]["arc"] = core.story.arc
+    core.memory["world_state"]["arc"] = story_arc
 
     # Спикер теперь сюжетный
-    speaker = f"Pulse::{core.story.arc}"
+    speaker = f"Pulse::{story_arc}"
 
     # Итоговый диалог — только сюжетная реплика, без world_event и без системных строк
     dialogue = narrative_reply  # игрок слышит только сюжетный диалог
 
     # Промпт изображения теперь отражает событие и главную сюжетную нить
     image_prompt = (
-        f"cinematic sci-fi scene, {core.story.arc} arc, "
+        f"cinematic sci-fi scene, {story_arc} arc, "
         f"{world_event}, "
         f"{' '.join([k for k, v in top_threads[:1]]) if top_threads else ''}, "
         f"emotional, high contrast, no text"
