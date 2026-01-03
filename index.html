@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinite Novel - WebGL Experience</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Infinite Novel - AI Story Engine</title>
     <style>
         * {
             margin: 0;
@@ -13,580 +12,465 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             background: #000;
             color: #fff;
-            overflow-x: hidden;
-            line-height: 1.6;
+            overflow: hidden;
+            height: 100vh;
         }
 
-        .container {
-            position: relative;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        #webgl-canvas {
+        #neural-canvas {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: 1;
-            pointer-events: none;
         }
 
-        .content {
-            position: relative;
+        .glass-panel {
+            position: absolute;
             z-index: 2;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 200, 255, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            animation: float 6s ease-in-out infinite;
+            box-shadow: 0 8px 32px rgba(0, 100, 255, 0.1);
         }
 
-        header {
-            text-align: center;
-            padding: 60px 20px 40px;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 15px;
-            margin-bottom: 40px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(100, 100, 255, 0.2);
+        .glass-panel:nth-child(1) {
+            top: 10%;
+            left: 5%;
+            width: 320px;
+            animation-delay: 0s;
+            border-top: 2px solid rgba(255, 100, 255, 0.3);
+        }
+
+        .glass-panel:nth-child(2) {
+            top: 20%;
+            right: 5%;
+            width: 280px;
+            animation-delay: 1s;
+            border-top: 2px solid rgba(100, 255, 255, 0.3);
+        }
+
+        .glass-panel:nth-child(3) {
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 350px;
+            animation-delay: 2s;
+            border-top: 2px solid rgba(255, 255, 100, 0.3);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
         }
 
         h1 {
-            font-size: 4rem;
-            margin-bottom: 10px;
+            font-size: 36px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
             background: linear-gradient(90deg, #ff00ff, #00ffff, #ffff00);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
-            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
         }
 
         .subtitle {
-            font-size: 1.5rem;
-            color: #a0a0ff;
-            margin-bottom: 30px;
-            font-weight: 300;
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            color: #88aaff;
+            margin-bottom: 24px;
+            text-shadow: 0 0 10px rgba(100, 200, 255, 0.3);
         }
 
-        .github-link {
-            display: inline-block;
-            background: rgba(0, 0, 0, 0.7);
-            color: #fff;
-            padding: 12px 30px;
-            border-radius: 30px;
-            text-decoration: none;
-            font-size: 1.1rem;
-            margin-top: 20px;
-            transition: all 0.3s;
-            border: 1px solid #00ffff;
-        }
-
-        .github-link:hover {
-            background: rgba(0, 150, 255, 0.3);
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0, 200, 255, 0.4);
-        }
-
-        .github-link i {
-            margin-right: 10px;
-        }
-
-        .description {
-            background: rgba(0, 0, 30, 0.8);
-            padding: 30px;
-            border-radius: 15px;
-            margin-bottom: 40px;
-            border-left: 5px solid #ff00ff;
-            backdrop-filter: blur(5px);
-        }
-
-        .description h2 {
-            color: #00ffff;
-            margin-bottom: 15px;
-            font-size: 1.8rem;
-        }
-
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
-        }
-
-        .feature-card {
-            background: rgba(20, 10, 40, 0.7);
-            padding: 25px;
-            border-radius: 15px;
-            border: 1px solid rgba(100, 100, 255, 0.2);
-            transition: transform 0.3s;
-            backdrop-filter: blur(5px);
-        }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-            border-color: #ff00ff;
-        }
-
-        .feature-card h3 {
-            color: #ffff00;
-            margin-bottom: 15px;
-            font-size: 1.4rem;
-            display: flex;
-            align-items: center;
-        }
-
-        .feature-card h3 i {
-            margin-right: 10px;
-            color: #00ffff;
-        }
-
-        .tech-stack {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .tech-tag {
-            background: rgba(0, 100, 255, 0.2);
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            border: 1px solid rgba(0, 200, 255, 0.3);
-        }
-
-        .code-preview {
-            background: rgba(0, 0, 0, 0.8);
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 40px;
-            border: 1px solid rgba(255, 0, 255, 0.3);
-            font-family: 'Courier New', monospace;
-            overflow-x: auto;
-        }
-
-        .code-preview h2 {
-            color: #ffff00;
-            margin-bottom: 15px;
-            font-size: 1.8rem;
-        }
-
-        .code-snippet {
-            color: #a0ffa0;
-            line-height: 1.5;
-            font-size: 0.95rem;
-        }
-
-        .code-comment {
-            color: #808080;
-        }
-
-        .code-keyword {
-            color: #ff8080;
-        }
-
-        .code-string {
-            color: #ffa0a0;
-        }
-
-        .shader-controls {
-            background: rgba(10, 0, 30, 0.8);
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 40px;
-            border: 1px solid rgba(0, 255, 255, 0.3);
-        }
-
-        .shader-controls h2 {
-            color: #00ffff;
+        p {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #ccddee;
             margin-bottom: 20px;
-            font-size: 1.8rem;
         }
 
         .control-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .control-item {
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .control-item label {
-            display: block;
-            margin-bottom: 8px;
-            color: #a0a0ff;
-        }
-
-        .control-item input[type="range"] {
-            width: 100%;
-            height: 8px;
-            border-radius: 4px;
-            background: rgba(100, 100, 255, 0.2);
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        .control-item input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #ff00ff;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(255, 0, 255, 0.8);
-        }
-
-        .preset-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
             margin-top: 20px;
         }
 
-        .preset-btn {
-            background: rgba(0, 50, 150, 0.5);
-            color: white;
-            border: 1px solid rgba(0, 200, 255, 0.5);
-            padding: 10px 20px;
-            border-radius: 20px;
+        label {
+            display: block;
+            font-size: 12px;
+            color: #aaccff;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #000, #224488);
+            border-radius: 1px;
+            outline: none;
+            -webkit-appearance: none;
+            margin-bottom: 16px;
+            border: 1px solid rgba(100, 150, 255, 0.2);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00ffff;
             cursor: pointer;
+            border: 2px solid #000;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
             transition: all 0.3s;
         }
 
-        .preset-btn:hover {
-            background: rgba(0, 100, 255, 0.7);
-            transform: translateY(-2px);
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #ff00ff;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 1);
         }
 
-        footer {
-            text-align: center;
-            padding: 30px;
-            color: #8080ff;
-            border-top: 1px solid rgba(100, 100, 255, 0.2);
-            margin-top: 40px;
-            background: rgba(0, 0, 20, 0.8);
-            border-radius: 0 0 15px 15px;
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-list li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 10px;
+            color: #bbddff;
+            font-size: 13px;
+        }
+
+        .feature-list li:before {
+            content: "▶";
+            position: absolute;
+            left: 0;
+            color: #00ffff;
+            font-size: 10px;
+        }
+
+        .stats {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 2;
+            font-size: 11px;
+            color: #6688aa;
+            letter-spacing: 1px;
+            text-align: right;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .github-corner {
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 3;
+            width: 80px;
+            height: 80px;
+            overflow: hidden;
+        }
+
+        .github-corner svg {
+            fill: #00ffff;
+            color: #000;
+            position: absolute;
+            top: 0;
+            right: 0;
+            border: 0;
+            opacity: 0.5;
+            transition: opacity 0.3s, fill 0.3s;
+        }
+
+        .github-corner:hover svg {
+            opacity: 0.8;
+            fill: #ff00ff;
+        }
+
+        .neuron {
+            position: absolute;
+            z-index: 2;
+            width: 4px;
+            height: 4px;
+            background: rgba(0, 255, 255, 0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(1px);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .pulse {
+            position: absolute;
+            z-index: 1;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 0, 255, 0.1) 0%, rgba(255, 0, 255, 0) 70%);
+            pointer-events: none;
+            animation: pulse 3s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.5); opacity: 0.5; }
+            50% { transform: scale(1); opacity: 0.2; }
+            100% { transform: scale(0.5); opacity: 0.5; }
         }
 
         @media (max-width: 768px) {
-            h1 {
-                font-size: 2.5rem;
+            .glass-panel {
+                width: 90% !important;
+                left: 5% !important;
+                right: 5% !important;
+                transform: none !important;
+                position: relative;
+                margin: 20px auto;
             }
             
-            .subtitle {
-                font-size: 1.2rem;
+            .glass-panel:nth-child(1),
+            .glass-panel:nth-child(2),
+            .glass-panel:nth-child(3) {
+                position: relative;
+                top: auto;
+                left: auto;
+                right: auto;
+                bottom: auto;
+                transform: none;
+                margin: 20px auto;
             }
             
-            .content {
-                padding: 15px;
-            }
-            
-            .feature-card, .description, .code-preview, .shader-controls {
+            body {
+                overflow-y: auto;
                 padding: 20px;
+            }
+            
+            h1 {
+                font-size: 28px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <canvas id="webgl-canvas"></canvas>
-        
-        <div class="content">
-            <header>
-                <h1>INFINITE NOVEL</h1>
-                <p class="subtitle">An AI-Powered Interactive Narrative Experience with Quantum Neural Networks</p>
-                <a href="https://github.com/0penAGI/InfiniteNovel/tree/main" class="github-link" target="_blank">
-                    <i class="fab fa-github"></i> View on GitHub
-                </a>
-            </header>
+    <canvas id="neural-canvas"></canvas>
+    
+    <div class="glass-panel">
+        <h1>INFINITE NOVEL</h1>
+        <div class="subtitle">AI STORY ENGINE</div>
+        <p>An experimental AI-powered interactive storytelling engine that creates dynamic, evolving narratives in real-time. Experience the fusion of quantum neural networks, fractal memory, and emergent narrative systems.</p>
+    </div>
+    
+    <div class="glass-panel">
+        <div class="subtitle">NARRATIVE CONTROLS</div>
+        <div class="control-group">
+            <label>RESONANCE</label>
+            <input type="range" id="resonance" min="0" max="2" value="1.0" step="0.1">
             
-            <section class="description">
-                <h2>About the Project</h2>
-                <p>Infinite Novel is a cutting-edge interactive storytelling game that combines AI generation, quantum-inspired neural networks, and real-time visual effects. The game creates a dynamic narrative that evolves based on player input, with AI-generated images, voice synthesis, and adaptive music.</p>
-                <p>The system uses Stable Diffusion for image generation, TTS for voice synthesis, and a custom Quantum Neural Network with Fractal Memory to create a truly responsive and immersive experience.</p>
-            </section>
+            <label>INSTABILITY</label>
+            <input type="range" id="instability" min="0" max="2" value="0.5" step="0.1">
             
-            <section class="features">
-                <div class="feature-card">
-                    <h3><i class="fas fa-brain"></i> Quantum Neural Network</h3>
-                    <p>A custom neural network with quantum-inspired layers that adapts to player choices and creates emergent narrative patterns.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <h3><i class="fas fa-image"></i> AI Image Generation</h3>
-                    <p>Real-time Stable Diffusion integration generates cinematic visuals that respond to the narrative and player actions.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <h3><i class="fas fa-microphone"></i> Voice Synthesis</h3>
-                    <p>TTS with HiFi-GAN vocoder creates dynamic voice responses for all narrative elements and characters.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <h3><i class="fas fa-infinity"></i> Fractal Memory</h3>
-                    <p>Advanced memory system that maintains narrative coherence across sessions with LSTM and quantum layers.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <h3><i class="fas fa-music"></i> Adaptive Music</h3>
-                    <p>Procedurally generated music that evolves based on story progress, mood, and player resonance.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <h3><i class="fas fa-code-branch"></i> Dynamic Story Arcs</h3>
-                    <p>Four story arcs (Awakening, Convergence, Rupture, Synthesis) that change based on player impact and choices.</p>
-                </div>
-            </section>
+            <label>COLLAPSE RISK</label>
+            <input type="range" id="collapse" min="0" max="2" value="0.3" step="0.1">
             
-            <div class="tech-stack">
-                <span class="tech-tag">PyGame</span>
-                <span class="tech-tag">PyTorch</span>
-                <span class="tech-tag">Stable Diffusion</span>
-                <span class="tech-tag">Transformers</span>
-                <span class="tech-tag">TTS</span>
-                <span class="tech-tag">OpenCV</span>
-                <span class="tech-tag">NumPy</span>
-                <span class="tech-tag">Quantum ML</span>
-                <span class="tech-tag">WebGL</span>
-                <span class="tech-tag">Gemma 3</span>
-            </div>
-            
-            <section class="code-preview">
-                <h2>Core Architecture</h2>
-                <pre class="code-snippet"><code>class <span class="code-keyword">QuantumNeuralNetwork</span>(nn.Module):
-    <span class="code-comment"># Quantum-inspired neural network for narrative adaptation</span>
-    def __init__(self, input_size=10, hidden_size=20):
-        super().__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, input_size)
-        self.quantum_weights = torch.randn(hidden_size, requires_grad=True)
-
-    def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        <span class="code-comment"># Quantum layer with wave function behavior</span>
-        quantum_layer = x * torch.cos(self.quantum_weights) + torch.sin(self.quantum_weights)
-        return self.fc2(quantum_layer)
-
-class <span class="code-keyword">FractalMemory</span>(nn.Module):
-    <span class="code-comment"># LSTM with quantum layers for narrative memory</span>
-    def __init__(self, input_size=10, hidden_size=20):
-        super().__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
-        self.quantum = QuantumNeuralNetwork(hidden_size, hidden_size)
-        self.fc = nn.Linear(hidden_size, input_size)</code></pre>
-            </section>
-            
-            <section class="shader-controls">
-                <h2>Shader Controls</h2>
-                <p>Adjust the WebGL shader parameters to match the mood of your Infinite Novel experience.</p>
-                
-                <div class="control-group">
-                    <div class="control-item">
-                        <label for="pulseSpeed">Pulse Speed</label>
-                        <input type="range" id="pulseSpeed" min="0.1" max="5" value="1.5" step="0.1">
-                    </div>
-                    
-                    <div class="control-item">
-                        <label for="distortion">Distortion Intensity</label>
-                        <input type="range" id="distortion" min="0" max="2" value="0.8" step="0.1">
-                    </div>
-                    
-                    <div class="control-item">
-                        <label for="glow">Glow Intensity</label>
-                        <input type="range" id="glow" min="0" max="3" value="1.2" step="0.1">
-                    </div>
-                </div>
-                
-                <div class="control-group">
-                    <div class="control-item">
-                        <label for="colorShift">Color Shift</label>
-                        <input type="range" id="colorShift" min="0" max="2" value="0.5" step="0.1">
-                    </div>
-                    
-                    <div class="control-item">
-                        <label for="fractalDepth">Fractal Depth</label>
-                        <input type="range" id="fractalDepth" min="1" max="10" value="4" step="1">
-                    </div>
-                    
-                    <div class="control-item">
-                        <label for="brightness">Brightness</label>
-                        <input type="range" id="brightness" min="0.1" max="2" value="1" step="0.1">
-                    </div>
-                </div>
-                
-                <div class="preset-buttons">
-                    <button class="preset-btn" data-preset="awakening">Awakening Arc</button>
-                    <button class="preset-btn" data-preset="convergence">Convergence Arc</button>
-                    <button class="preset-btn" data-preset="rupture">Rupture Arc</button>
-                    <button class="preset-btn" data-preset="synthesis">Synthesis Arc</button>
-                    <button class="preset-btn" data-preset="quantum">Quantum State</button>
-                    <button class="preset-btn" data-preset="reset">Reset</button>
-                </div>
-            </section>
-            
-            <footer>
-                <p>Infinite Novel - An OpenAGI Project | WebGL Visualization</p>
-                <p>Experience the fusion of quantum computing, AI, and interactive storytelling</p>
-            </footer>
+            <label>NARRATIVE FLOW</label>
+            <input type="range" id="narrativeFlow" min="0.1" max="3" value="1.5" step="0.1">
         </div>
     </div>
-
-    <script type="x-shader/x-vertex" id="vertexShader">
-        attribute vec3 aPosition;
-        attribute vec2 aTexCoord;
-        
-        varying vec2 vTexCoord;
-        varying vec3 vPosition;
-        
-        void main() {
-            vTexCoord = aTexCoord;
-            vPosition = aPosition;
-            gl_Position = vec4(aPosition, 1.0);
-        }
-    </script>
-
-    <script type="x-shader/x-fragment" id="fragmentShader">
-        precision highp float;
-        
-        varying vec2 vTexCoord;
-        varying vec3 vPosition;
-        
-        uniform float uTime;
-        uniform float uPulseSpeed;
-        uniform float uDistortion;
-        uniform float uGlow;
-        uniform float uColorShift;
-        uniform float uFractalDepth;
-        uniform float uBrightness;
-        
-        // Fractal noise function
-        float fractalNoise(vec2 p, int octaves) {
-            float value = 0.0;
-            float amplitude = 0.5;
-            float frequency = 1.0;
-            float maxValue = 0.0;
-            
-            for(int i = 0; i < 10; i++) {
-                if(i >= octaves) break;
-                
-                // Rotating noise for more organic feel
-                vec2 q = vec2(
-                    cos(p.x * frequency + uTime * 0.1) - sin(p.y * frequency + uTime * 0.1),
-                    sin(p.x * frequency + uTime * 0.1) + cos(p.y * frequency + uTime * 0.1)
-                );
-                
-                value += amplitude * (sin(q.x * 10.0) * 0.5 + 0.5) * (cos(q.y * 10.0) * 0.5 + 0.5);
-                maxValue += amplitude;
-                amplitude *= 0.5;
-                frequency *= 2.0;
-            }
-            
-            return value / maxValue;
-        }
-        
-        // Quantum wave function simulation
-        float quantumWave(vec2 p, float time) {
-            return sin(p.x * 5.0 + time) * cos(p.y * 3.0 + time * 0.7) * 
-                   sin(p.x * p.y * 2.0 + time * 0.3) * cos(p.x * 7.0 - time * 0.5);
-        }
-        
-        // Color palette for different story arcs
-        vec3 getArcColor(float arc, vec2 uv) {
-            if(arc < 0.25) {
-                // Awakening - blues and purples
-                return vec3(0.1, 0.3, 0.8) + vec3(0.5, 0.2, 0.6) * sin(uv.x * 10.0 + uTime);
-            } else if(arc < 0.5) {
-                // Convergence - golds and oranges
-                return vec3(0.8, 0.6, 0.1) + vec3(0.3, 0.2, 0.1) * cos(uv.y * 8.0 + uTime * 0.7);
-            } else if(arc < 0.75) {
-                // Rupture - reds and dark purples
-                return vec3(0.7, 0.1, 0.3) + vec3(0.3, 0.0, 0.4) * sin(uv.x * uv.y * 20.0 + uTime * 1.2);
-            } else {
-                // Synthesis - greens and cyans
-                return vec3(0.1, 0.7, 0.5) + vec3(0.2, 0.3, 0.8) * cos(uv.x * 6.0 - uv.y * 6.0 + uTime * 0.9);
-            }
-        }
-        
-        void main() {
-            // Normalized coordinates with aspect ratio correction
-            vec2 uv = vTexCoord * 2.0 - 1.0;
-            uv.x *= 1.0; // Aspect ratio
-            
-            // Time with pulse speed
-            float time = uTime * uPulseSpeed * 0.001;
-            
-            // Create distortion
-            vec2 distortedUV = uv;
-            distortedUV.x += sin(uv.y * 3.0 + time * 1.5) * 0.1 * uDistortion;
-            distortedUV.y += cos(uv.x * 2.0 + time * 1.2) * 0.1 * uDistortion;
-            
-            // Generate fractal patterns
-            float fractal = fractalNoise(distortedUV * uFractalDepth, int(uFractalDepth));
-            
-            // Quantum interference patterns
-            float quantum = quantumWave(distortedUV * 2.0, time) * 0.5 + 0.5;
-            
-            // Neural network connections visualization
-            float neural = sin(distortedUV.x * 20.0 + time) * cos(distortedUV.y * 15.0 + time) * 0.5 + 0.5;
-            
-            // Combine patterns
-            float pattern = mix(fractal, quantum, 0.5) * neural;
-            
-            // Pulsating core
-            float pulse = sin(time * 2.0) * 0.5 + 0.5;
-            float distanceFromCenter = length(uv);
-            float core = (1.0 - smoothstep(0.0, 0.5, distanceFromCenter)) * pulse;
-            
-            // Create main color
-            vec3 color = getArcColor(pattern, uv) * (pattern * 0.8 + core * 0.4);
-            
-            // Apply color shifting
-            color.r = mix(color.r, color.g, uColorShift * 0.3);
-            color.g = mix(color.g, color.b, uColorShift * 0.3);
-            color.b = mix(color.b, color.r, uColorShift * 0.3);
-            
-            // Add glow effect
-            vec3 glowColor = vec3(0.5, 0.3, 0.8) * uGlow;
-            color += glowColor * (pattern * 0.5 + core * 0.3);
-            
-            // Brightness adjustment
-            color *= uBrightness;
-            
-            // Final output with vignette
-            float vignette = 1.0 - distanceFromCenter * 0.5;
-            color *= vignette;
-            
-            gl_FragColor = vec4(color, 1.0);
-        }
-    </script>
+    
+    <div class="glass-panel">
+        <div class="subtitle">CORE SYSTEMS</div>
+        <ul class="feature-list">
+            <li>Quantum Neural Network</li>
+            <li>Fractal Memory System</li>
+            <li>Dynamic Story Arcs</li>
+            <li>Real-time AI Generation</li>
+            <li>Emotional Intelligence</li>
+            <li>Procedural Music</li>
+            <li>Visual Morphing Pipeline</li>
+            <li>Interactive World State</li>
+        </ul>
+    </div>
+    
+    <div class="stats">
+        <div id="fps">FPS: 60</div>
+        <div id="resolution">RES: 1920×1080</div>
+        <div id="nodes">NEURONS: 0</div>
+    </div>
+    
+    <a href="https://github.com/0penAGI/InfiniteNovel" class="github-corner" aria-label="View source on GitHub" target="_blank">
+        <svg width="80" height="80" viewBox="0 0 250 250" style="fill:#00ffff; color:#000; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true">
+            <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
+            <path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path>
+            <path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path>
+        </svg>
+    </a>
 
     <script>
-        // WebGL initialization
-        const canvas = document.getElementById('webgl-canvas');
+        // WebGL Neural Network Shader
+        const canvas = document.getElementById('neural-canvas');
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
         
         if (!gl) {
-            alert('WebGL not supported!');
+            alert('WebGL not supported');
             throw new Error('WebGL not supported');
         }
         
-        // Set canvas size
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            gl.viewport(0, 0, canvas.width, canvas.height);
-        }
+        // Shader sources - Neural Network Simulation
+        const vertexShaderSource = `
+            attribute vec2 a_position;
+            varying vec2 v_uv;
+            
+            void main() {
+                gl_Position = vec4(a_position, 0.0, 1.0);
+                v_uv = a_position * 0.5 + 0.5;
+            }
+        `;
         
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+        const fragmentShaderSource = `
+            precision highp float;
+            
+            varying vec2 v_uv;
+            uniform float u_time;
+            uniform float u_resonance;
+            uniform float u_instability;
+            uniform float u_collapse;
+            uniform float u_narrative_flow;
+            uniform vec2 u_mouse;
+            uniform vec2 u_resolution;
+            
+            // Hash function for noise
+            float hash(vec2 p) {
+                p = fract(p * vec2(123.34, 456.21));
+                p += dot(p, p + 45.32);
+                return fract(p.x * p.y);
+            }
+            
+            // Simplex noise
+            float noise(vec2 p) {
+                vec2 ip = floor(p);
+                vec2 fp = fract(p);
+                
+                float a = hash(ip);
+                float b = hash(ip + vec2(1.0, 0.0));
+                float c = hash(ip + vec2(0.0, 1.0));
+                float d = hash(ip + vec2(1.0, 1.0));
+                
+                vec2 t = smoothstep(0.0, 1.0, fp);
+                
+                return mix(mix(a, b, t.x), mix(c, d, t.x), t.y);
+            }
+            
+            // Fractal Brownian Motion for neural patterns
+            float fbm(vec2 p) {
+                float value = 0.0;
+                float amplitude = 0.5;
+                float frequency = 1.0;
+                
+                for (int i = 0; i < 6; i++) {
+                    value += amplitude * noise(p * frequency);
+                    amplitude *= 0.5;
+                    frequency *= 2.0;
+                }
+                
+                return value;
+            }
+            
+            // Neural network simulation
+            vec3 neuralNetwork(vec2 p, float time) {
+                vec3 color = vec3(0.0);
+                
+                // Base neural activity
+                float activity = 0.0;
+                
+                // Multiple layers of neural activity
+                for (int i = 0; i < 4; i++) {
+                    float layer = float(i);
+                    vec2 offset = vec2(sin(time * 0.2 + layer), cos(time * 0.3 + layer));
+                    activity += fbm(p * (2.0 + layer) + offset) * (0.3 / (1.0 + layer));
+                }
+                
+                // Apply resonance
+                activity *= u_resonance;
+                
+                // Neural connections (sinusoidal patterns)
+                float connections = 0.0;
+                for (int i = 0; i < 3; i++) {
+                    float freq = 5.0 + float(i) * 3.0;
+                    connections += sin(p.x * freq + time * 0.5) * cos(p.y * freq + time * 0.3) * 0.2;
+                }
+                
+                // Combine activity and connections
+                float neural = activity + connections;
+                
+                // Apply instability for distortion
+                vec2 distortedUV = p;
+                distortedUV.x += sin(p.y * 3.0 + time * u_instability) * 0.1 * u_instability;
+                distortedUV.y += cos(p.x * 2.0 + time * u_instability * 0.8) * 0.1 * u_instability;
+                
+                // Collapse effect - dark voids
+                float collapseMask = 1.0;
+                if (u_collapse > 0.5) {
+                    vec2 collapseCenter = vec2(0.5, 0.5);
+                    float collapseDist = distance(p, collapseCenter);
+                    collapseMask = 1.0 - smoothstep(0.0, 0.5 * u_collapse, collapseDist);
+                }
+                
+                // Color scheme for neural network
+                // Base: deep space blue
+                color = vec3(0.05, 0.08, 0.15);
+                
+                // Neural activity: cyan
+                color += vec3(0.0, 0.7, 0.7) * neural * 0.8;
+                
+                // Hot spots: magenta
+                float hotspots = fbm(distortedUV * 8.0 + time * 0.5);
+                color += vec3(0.8, 0.0, 0.8) * hotspots * 0.3 * u_resonance;
+                
+                // Narrative flow: yellow pulses
+                float flowPulse = sin(p.x * 10.0 + time * u_narrative_flow) * 
+                                 cos(p.y * 8.0 + time * u_narrative_flow * 0.7) * 0.1;
+                color += vec3(0.8, 0.8, 0.0) * flowPulse * u_narrative_flow;
+                
+                // Apply collapse effect
+                color *= collapseMask;
+                
+                // Mouse interaction - neural activation
+                vec2 mouseDist = p - u_mouse;
+                float mouseInfluence = exp(-length(mouseDist) * 15.0) * 2.0;
+                color += vec3(0.0, 1.0, 1.0) * mouseInfluence * u_resonance;
+                
+                return color;
+            }
+            
+            // Main shader
+            void main() {
+                vec2 uv = v_uv;
+                vec2 p = uv * 2.0 - 1.0;
+                p.x *= u_resolution.x / u_resolution.y;
+                
+                // Time with narrative flow
+                float time = u_time * 0.001 * u_narrative_flow;
+                
+                // Generate neural network visualization
+                vec3 color = neuralNetwork(p, time);
+                
+                // Edge vignette
+                float vignette = 1.0 - length(p) * 0.3;
+                color *= vignette;
+                
+                // Final output
+                gl_FragColor = vec4(color, 1.0);
+            }
+        `;
         
         // Compile shader
         function compileShader(source, type) {
@@ -603,9 +487,9 @@ class <span class="code-keyword">FractalMemory</span>(nn.Module):
             return shader;
         }
         
-        // Create program
-        const vertexShader = compileShader(document.getElementById('vertexShader').textContent, gl.VERTEX_SHADER);
-        const fragmentShader = compileShader(document.getElementById('fragmentShader').textContent, gl.FRAGMENT_SHADER);
+        // Create shader program
+        const vertexShader = compileShader(vertexShaderSource, gl.VERTEX_SHADER);
+        const fragmentShader = compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
         
         const program = gl.createProgram();
         gl.attachShader(program, vertexShader);
@@ -618,151 +502,225 @@ class <span class="code-keyword">FractalMemory</span>(nn.Module):
         
         gl.useProgram(program);
         
-        // Create geometry (fullscreen quad)
+        // Create fullscreen quad
         const vertices = new Float32Array([
-            -1, -1, 0,  0, 0,
-             1, -1, 0,  1, 0,
-            -1,  1, 0,  0, 1,
-             1,  1, 0,  1, 1
+            -1, -1,
+             1, -1,
+            -1,  1,
+             1,  1
         ]);
         
         const vertexBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
         
-        // Set up attributes
-        const positionAttrib = gl.getAttribLocation(program, 'aPosition');
-        const texCoordAttrib = gl.getAttribLocation(program, 'aTexCoord');
-        
+        const positionAttrib = gl.getAttribLocation(program, 'a_position');
         gl.enableVertexAttribArray(positionAttrib);
-        gl.enableVertexAttribArray(texCoordAttrib);
-        
-        gl.vertexAttribPointer(positionAttrib, 3, gl.FLOAT, false, 20, 0);
-        gl.vertexAttribPointer(texCoordAttrib, 2, gl.FLOAT, false, 20, 12);
+        gl.vertexAttribPointer(positionAttrib, 2, gl.FLOAT, false, 0, 0);
         
         // Get uniform locations
-        const timeUniform = gl.getUniformLocation(program, 'uTime');
-        const pulseSpeedUniform = gl.getUniformLocation(program, 'uPulseSpeed');
-        const distortionUniform = gl.getUniformLocation(program, 'uDistortion');
-        const glowUniform = gl.getUniformLocation(program, 'uGlow');
-        const colorShiftUniform = gl.getUniformLocation(program, 'uColorShift');
-        const fractalDepthUniform = gl.getUniformLocation(program, 'uFractalDepth');
-        const brightnessUniform = gl.getUniformLocation(program, 'uBrightness');
+        const timeUniform = gl.getUniformLocation(program, 'u_time');
+        const resonanceUniform = gl.getUniformLocation(program, 'u_resonance');
+        const instabilityUniform = gl.getUniformLocation(program, 'u_instability');
+        const collapseUniform = gl.getUniformLocation(program, 'u_collapse');
+        const narrativeFlowUniform = gl.getUniformLocation(program, 'u_narrative_flow');
+        const mouseUniform = gl.getUniformLocation(program, 'u_mouse');
+        const resolutionUniform = gl.getUniformLocation(program, 'u_resolution');
         
         // Set initial uniform values
-        let uniforms = {
-            pulseSpeed: 1.5,
-            distortion: 0.8,
-            glow: 1.2,
-            colorShift: 0.5,
-            fractalDepth: 4,
-            brightness: 1.0
+        const uniforms = {
+            resonance: 1.0,
+            instability: 0.5,
+            collapse: 0.3,
+            narrativeFlow: 1.5,
+            mouse: [0.5, 0.5]
         };
         
-        // Update uniforms from UI controls
+        // Update uniforms from UI
         function updateUniforms() {
-            gl.uniform1f(pulseSpeedUniform, uniforms.pulseSpeed);
-            gl.uniform1f(distortionUniform, uniforms.distortion);
-            gl.uniform1f(glowUniform, uniforms.glow);
-            gl.uniform1f(colorShiftUniform, uniforms.colorShift);
-            gl.uniform1f(fractalDepthUniform, uniforms.fractalDepth);
-            gl.uniform1f(brightnessUniform, uniforms.brightness);
+            gl.uniform1f(resonanceUniform, uniforms.resonance);
+            gl.uniform1f(instabilityUniform, uniforms.instability);
+            gl.uniform1f(collapseUniform, uniforms.collapse);
+            gl.uniform1f(narrativeFlowUniform, uniforms.narrativeFlow);
+            gl.uniform2f(mouseUniform, uniforms.mouse[0], uniforms.mouse[1]);
         }
         
-        // Connect UI controls
-        document.getElementById('pulseSpeed').addEventListener('input', (e) => {
-            uniforms.pulseSpeed = parseFloat(e.target.value);
-            updateUniforms();
-        });
-        
-        document.getElementById('distortion').addEventListener('input', (e) => {
-            uniforms.distortion = parseFloat(e.target.value);
-            updateUniforms();
-        });
-        
-        document.getElementById('glow').addEventListener('input', (e) => {
-            uniforms.glow = parseFloat(e.target.value);
-            updateUniforms();
-        });
-        
-        document.getElementById('colorShift').addEventListener('input', (e) => {
-            uniforms.colorShift = parseFloat(e.target.value);
-            updateUniforms();
-        });
-        
-        document.getElementById('fractalDepth').addEventListener('input', (e) => {
-            uniforms.fractalDepth = parseFloat(e.target.value);
-            updateUniforms();
-        });
-        
-        document.getElementById('brightness').addEventListener('input', (e) => {
-            uniforms.brightness = parseFloat(e.target.value);
-            updateUniforms();
-        });
-        
-        // Preset configurations
-        const presets = {
-            awakening: { pulseSpeed: 1.0, distortion: 0.5, glow: 0.8, colorShift: 0.3, fractalDepth: 3, brightness: 0.9 },
-            convergence: { pulseSpeed: 1.8, distortion: 0.7, glow: 1.5, colorShift: 0.6, fractalDepth: 5, brightness: 1.1 },
-            rupture: { pulseSpeed: 2.5, distortion: 1.5, glow: 2.0, colorShift: 0.8, fractalDepth: 7, brightness: 1.3 },
-            synthesis: { pulseSpeed: 1.2, distortion: 0.3, glow: 1.0, colorShift: 0.4, fractalDepth: 4, brightness: 1.0 },
-            quantum: { pulseSpeed: 3.0, distortion: 2.0, glow: 2.5, colorShift: 1.5, fractalDepth: 8, brightness: 1.5 },
-            reset: { pulseSpeed: 1.5, distortion: 0.8, glow: 1.2, colorShift: 0.5, fractalDepth: 4, brightness: 1.0 }
-        };
-        
-        // Apply presets
-        document.querySelectorAll('.preset-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const preset = presets[btn.dataset.preset];
-                uniforms = { ...preset };
+        // Resize canvas
+        function resizeCanvas() {
+            const displayWidth = canvas.clientWidth;
+            const displayHeight = canvas.clientHeight;
+            
+            if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+                canvas.width = displayWidth;
+                canvas.height = displayHeight;
+                gl.viewport(0, 0, canvas.width, canvas.height);
+                gl.uniform2f(resolutionUniform, canvas.width, canvas.height);
                 
-                // Update UI sliders
-                document.getElementById('pulseSpeed').value = uniforms.pulseSpeed;
-                document.getElementById('distortion').value = uniforms.distortion;
-                document.getElementById('glow').value = uniforms.glow;
-                document.getElementById('colorShift').value = uniforms.colorShift;
-                document.getElementById('fractalDepth').value = uniforms.fractalDepth;
-                document.getElementById('brightness').value = uniforms.brightness;
+                // Update stats
+                document.getElementById('resolution').textContent = 
+                    `RES: ${canvas.width}×${canvas.height}`;
+            }
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Mouse interaction
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            uniforms.mouse[0] = (e.clientX - rect.left) / canvas.width;
+            uniforms.mouse[1] = 1.0 - (e.clientY - rect.top) / canvas.height;
+            
+            // Create neural activation at mouse position
+            createNeuronActivation(e.clientX, e.clientY);
+        });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            uniforms.mouse[0] = (e.touches[0].clientX - rect.left) / canvas.width;
+            uniforms.mouse[1] = 1.0 - (e.touches[0].clientY - rect.top) / canvas.height;
+            
+            // Create neural activation at touch position
+            createNeuronActivation(e.touches[0].clientX, e.touches[0].clientY);
+        });
+        
+        // UI controls
+        document.getElementById('resonance').addEventListener('input', (e) => {
+            uniforms.resonance = parseFloat(e.target.value);
+            updateUniforms();
+        });
+        
+        document.getElementById('instability').addEventListener('input', (e) => {
+            uniforms.instability = parseFloat(e.target.value);
+            updateUniforms();
+        });
+        
+        document.getElementById('collapse').addEventListener('input', (e) => {
+            uniforms.collapse = parseFloat(e.target.value);
+            updateUniforms();
+        });
+        
+        document.getElementById('narrativeFlow').addEventListener('input', (e) => {
+            uniforms.narrativeFlow = parseFloat(e.target.value);
+            updateUniforms();
+        });
+        
+        // Create neural particles
+        function createNeuronParticles() {
+            const particles = [];
+            
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'neuron';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 5 + 's';
+                document.body.appendChild(particle);
                 
-                updateUniforms();
+                particles.push({
+                    element: particle,
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5
+                });
+            }
+            
+            return particles;
+        }
+        
+        // Create neural activation effect
+        function createNeuronActivation(x, y) {
+            const activation = document.createElement('div');
+            activation.className = 'pulse';
+            activation.style.left = (x - 50) + 'px';
+            activation.style.top = (y - 50) + 'px';
+            document.body.appendChild(activation);
+            
+            setTimeout(() => {
+                activation.remove();
+            }, 3000);
+            
+            // Update neuron count
+            const neuronCount = document.querySelectorAll('.neuron').length;
+            document.getElementById('nodes').textContent = `NEURONS: ${neuronCount}`;
+        }
+        
+        // Create initial neural particles
+        const particles = createNeuronParticles();
+        
+        // Animate neural particles
+        function animateParticles() {
+            particles.forEach(particle => {
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                
+                // Bounce off walls
+                if (particle.x < 0 || particle.x > window.innerWidth) particle.vx *= -1;
+                if (particle.y < 0 || particle.y > window.innerHeight) particle.vy *= -1;
+                
+                // Apply some randomness
+                particle.vx += (Math.random() - 0.5) * 0.02;
+                particle.vy += (Math.random() - 0.5) * 0.02;
+                
+                // Limit velocity
+                const speed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
+                if (speed > 1) {
+                    particle.vx = particle.vx / speed;
+                    particle.vy = particle.vy / speed;
+                }
+                
+                particle.element.style.left = particle.x + 'px';
+                particle.element.style.top = particle.y + 'px';
+                
+                // Pulsing effect
+                const pulse = Math.sin(Date.now() * 0.002 + particle.x * 0.01) * 0.5 + 0.5;
+                particle.element.style.opacity = 0.3 + pulse * 0.5;
             });
-        });
+            
+            requestAnimationFrame(animateParticles);
+        }
+        
+        // FPS counter
+        let fps = 60;
+        let lastTime = performance.now();
+        let frameCount = 0;
         
         // Animation loop
-        let startTime = Date.now();
-        
-        function animate() {
-            const currentTime = Date.now() - startTime;
+        function animate(currentTime) {
+            frameCount++;
+            
+            if (currentTime - lastTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+                document.getElementById('fps').textContent = `FPS: ${fps}`;
+            }
+            
+            resizeCanvas();
             gl.uniform1f(timeUniform, currentTime);
-            
-            gl.clearColor(0, 0, 0, 1);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
             
             requestAnimationFrame(animate);
         }
         
-        // Start animation
+        // Initialize
+        resizeCanvas();
         updateUniforms();
-        animate();
+        animateParticles();
         
-        // Add some interactive effects on mouse move
-        let mouseX = 0.5, mouseY = 0.5;
+        // Start animation
+        requestAnimationFrame(animate);
         
-        document.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX / window.innerWidth;
-            mouseY = 1.0 - e.clientY / window.innerHeight;
-            
-            // Optional: Add mouse interaction to shader
-            // You could add mouse uniforms and use them in the shader
-        });
+        // Prevent context menu on right click
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
         
-        // GitHub link opens in new tab
-        document.querySelector('.github-link').addEventListener('click', (e) => {
-            e.preventDefault();
-            window.open(e.target.href || e.target.parentElement.href, '_blank');
-        });
+        // Create initial neural network pulses
+        setInterval(() => {
+            const x = Math.random() * window.innerWidth;
+            const y = Math.random() * window.innerHeight;
+            createNeuronActivation(x, y);
+        }, 2000);
     </script>
 </body>
 </html>
