@@ -2,149 +2,258 @@
 
 ![Novel Screenshot](novel.png)
 ![Additional Screenshot](nolev.png)
+# Infinite Novel - AI-Powered Interactive Narrative Engine
 
-## 🌌 About the Project
+**Infinite Novel** is an experimental interactive narrative game that combines real-time AI generation with dynamic storytelling. Powered by multiple AI models, it creates a responsive sci-fi universe that evolves based on player actions through visual, auditory, and textual synthesis.
 
-**Infinite Novel** is an experimental AI-powered interactive storytelling engine that creates a dynamic, evolving narrative experience in real-time. This cutting-edge project combines multiple AI models to generate visuals, dialogue, music, and story progression based on player input, creating a truly unique emergent narrative system.
+![Experimental Game](https://img.shields.io/badge/Status-Experimental-orange)
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
+![PyGame](https://img.shields.io/badge/PyGame-2.5%2B-green)
 
-## ✨ Key Features
+## 🌟 Features
 
-- **Dynamic Story Generation**: Uses Gemma3 (via Ollama) to generate contextual narrative responses
-- **Real-time Visual Generation**: Stable Diffusion creates cinematic sci-fi scenes based on story context
-- **Adaptive Music System**: Procedurally generated ambient music that evolves with story progression
-- **Emotional Intelligence**: Sentiment analysis and quantum-inspired neural networks track mood and narrative tension
-- **Fractal Memory System**: LSTM-based memory with quantum layers for maintaining narrative coherence
-- **Interactive World State**: Collapse mechanics, instability systems, and narrative locks
-- **Full Voice Synthesis**: TTS integration for immersive audio experience
-- **Cinematic Presentation**: 2.35:1 aspect ratio with advanced visual effects (glow, displacement, morphing)
+### **Real-Time AI Generation**
+- **Visual Synthesis**: Stable Diffusion-powered cinematic scene generation
+- **Narrative Generation**: Gemma3 (via Ollama) for dynamic story responses
+- **Voice Synthesis**: TTS with HiFi-GAN vocoder for spoken dialogue
+- **Music Generation**: Procedural audio that adapts to narrative mood
 
-## 🏗️ Architecture Overview
+### **Dynamic Story Systems**
+- **Fractal Memory**: LSTM networks with quantum-inspired layers for narrative continuity
+- **Quantum Memory**: State transitions and prediction based on player actions
+- **Story Director**: Multi-arc narrative system with player profiling
+- **World State Simulation**: Collapse mechanics, instability, and narrative locks
 
-### Core Systems:
-1. **Story Director** - Manages narrative arcs (Awakening → Convergence → Rupture → Synthesis)
-2. **Pulse Core Engine** - Central coordination of all AI systems
-3. **Quantum Memory** - Predictive state transitions based on player actions
-4. **Visual Pipeline** - Real-time image generation and post-processing
-5. **Audio Engine** - Procedural music and voice synthesis
+### **Immersive Visual Effects**
+- Real-time image morphing and displacement
+- Glow and sharpness post-processing
+- Feedback loops and visual memory buffers
+- Streaming image generation with micro-shaders
 
-### AI Integration:
-- **Gemma3:1b** (via Ollama) - Narrative generation and dialogue
-- **Stable Diffusion v1.5** - Visual scene generation
-- **Tacotron2-DDC TTS** - Voice synthesis
-- **DistilBERT** - Sentiment analysis
-- **Custom Quantum Neural Networks** - Emotional prediction
+### **Interactive Systems**
+- Player action interpretation with sentiment analysis
+- Thread-based narrative tension system
+- Conflict resolution and ally management
+- Dynamic dialogue with bold text formatting
 
-## 🎮 Gameplay Mechanics
+## 🚀 Quick Start
 
-- **Interactive Dialogue**: Type commands and watch the world respond
-- **World State Management**: Monitor collapse levels, instability, and narrative locks
-- **Relationship Systems**: Titan relations, network nodes, and resonance scores
-- **Quality Feedback**: Rate generated content (1-5) to train the system
-- **Hard Failure States**: World collapse mechanics create stakes
+### Prerequisites
+- **Python 3.8+**
+- **Ollama** (for Gemma3 text generation)
+- **CUDA/MPS** compatible GPU (recommended)
+- **18GB+ RAM** (tested on MacBook M3 Pro 18GB)
 
-## 🚀 Getting Started
+### Installation
 
-### Prerequisites:
-```bash
-# Python 3.8+
-# CUDA-compatible GPU (recommended)
-# Ollama with Gemma3:1b installed
-# 8GB+ VRAM for Stable Diffusion
-```
-
-### Installation:
+1. **Clone the repository:**
 ```bash
 git clone https://github.com/0penAGI/InfiniteNovel.git
 cd InfiniteNovel
+```
+
+2. **Create virtual environment:**
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. **Install dependencies:**
+```bash
 pip install -r requirements.txt
+```
 
-# Install and run Ollama
-curl -fsSL https://ollama.com/install.sh | sh
-ollama pull gemma3:1b
+4. **Set up Ollama:**
+```bash
+# Install Ollama from https://ollama.ai/
+ollama pull gemma3:1b  # or gemma3:4b
+```
 
-# Run the engine
+### Running the Game
+```bash
 python infinite_novel.py
 ```
 
-### Dependencies:
+## 🎮 Gameplay
+
+### Controls
+- **Type** commands and press **Enter** to interact
+- **Escape** to toggle fullscreen
+- **Backspace** to edit input
+
+### Narrative Mechanics
+1. **Start**: You awaken in a cosmic void as "The Pulse"
+2. **Interact**: Type actions, questions, or commands
+3. **Influence**: Your choices affect world state, alliances, and conflicts
+4. **Progress**: Unlock narrative arcs (Awakening → Convergence → Rupture → Synthesis)
+
+### World States
+- **Collapse**: Measures world stability (≥1.0 = game over)
+- **Instability**: Chaos level affecting generation
+- **Locks**: Narrative paths that become unavailable
+- **Titan Timer**: Megatitan interventions
+
+## 🏗️ Architecture
+
+### Core Systems
+
 ```
-pygame
-torch
-diffusers
-transformers
-TTS
-opencv-python
-scipy
-numpy
-requests
+PulseCore
+├── FractalMemory (LSTM + Quantum NN)
+├── QuantumMemory (State transitions)
+├── StoryDirector (Narrative arcs)
+└── WorldState (Collapse/Instability)
 ```
 
-## 🎨 Technical Highlights
+### AI Integration
+| Component | Model | Purpose |
+|-----------|-------|---------|
+| **Text** | Gemma3 via Ollama | Narrative responses |
+| **Images** | Stable Diffusion v1.5 | Scene generation |
+| **Audio** | TTS (Tacotron2-DDC) | Voice synthesis |
+| **Music** | Procedural generation | Adaptive soundtrack |
+| **Sentiment** | DistilBERT | Action interpretation |
 
-### Visual Pipeline:
-- Real-time image morphing between generated scenes
-- Displacement effects based on world instability
-- Glow and sharpen post-processing
-- Feedback loops from previous frames
-- Aspect-aware scaling (2.35:1 cinematic ratio)
+### Rendering Pipeline
+1. **Image Generation** → 2. **Morphing** → 3. **Displacement** → 4. **Post-processing** → 5. **Display**
 
-### Audio System:
-- Infinite generative music with act transitions
-- Dynamic reverb and delay effects
-- Mood-sensitive frequency generation
-- Voice synthesis with caching
+## ⚙️ Configuration
 
-### Memory Systems:
-- Fractal LSTM networks for long-term coherence
-- Quantum-inspired prediction layers
-- Thread-based narrative tracking
-- Event history with impact scoring
+### Key Parameters
+```python
+# Display
+ASPECT_RATIO = 4.2
+SCREEN_WIDTH = 1280
 
-## 🔬 Research Implications
+# Generation
+MAX_BUFFER_SIZE = 5
+CHAR_DELAY = 50  # ms per character
 
-This project explores several frontiers in AI interaction:
-- **Emergent Narrative**: How can AI systems create coherent stories from player input?
-- **Multi-modal Integration**: Synchronizing text, image, and audio generation
-- **Procedural Emotional Systems**: Quantifying and responding to narrative mood
-- **Quantum-inspired AI**: Applying quantum concepts to neural network architectures
+# World
+TITAN_TIMER = 120
+COLLAPSE_THRESHOLD = 1.0
+```
 
-## 📊 Performance Considerations
+### Device Support
+- **CUDA**: NVIDIA GPUs (recommended)
+- **MPS**: Apple Silicon (tested on M3 Pro)
+- **CPU**: Fallback (slower)
 
-- **VRAM Usage**: ~6-8GB for full pipeline
-- **Generation Times**: 2-4 seconds per response cycle
-- **Memory**: Maintains last 50 events and 100 action states
-- **Audio**: Streams music segments with pauses for natural rhythm
+## 📁 Project Structure
+
+```
+InfiniteNovel/
+├── infinite_novel.py      # Main game engine
+├── requirements.txt       # Dependencies
+├── README.md             # This file
+└── assets/               # (Optional) Static assets
+```
+
+## 🔧 Advanced Usage
+
+### Custom Models
+Edit the model initialization sections:
+```python
+# For different SD model:
+pipe = StableDiffusionPipeline.from_pretrained(
+    "stabilityai/stable-diffusion-2-1",  # Change model
+    torch_dtype=torch.float32
+)
+
+# For different TTS:
+tts = TTS(model_name="tts_models/en/vctk/vits", progress_bar=False)
+```
+
+### Narrative Tuning
+Adjust `StoryDirector` parameters:
+```python
+class StoryDirector:
+    def __init__(self):
+        self.arc = "awakening"  # Starting arc
+        self.player_profile_size = 50  # Memory length
+```
+
+### Performance Optimization
+- Reduce `MAX_BUFFER_SIZE` for lower memory usage
+- Decrease `num_inference_steps` for faster image generation
+- Adjust `executor.max_workers` based on CPU cores
+
+## 🐛 Known Issues
+
+### Current Limitations
+1. **Memory Intensive**: Requires 18GB+ RAM for optimal performance
+2. **Slow Initial Load**: Models download on first run (~10GB)
+3. **Ollama Dependency**: Must run Ollama server locally
+4. **MPS Performance**: Apple Silicon support is experimental
+
+### Common Fixes
+- **Black screen**: Check Ollama server status
+- **Slow generation**: Reduce image resolution in code
+- **Audio glitches**: Adjust `pygame.mixer.init` parameters
+
+## 🔮 Future Development
+
+### Planned Features
+- [ ] Save/Load game states
+- [ ] Mod support for custom narratives
+- [ ] Multiplayer synchronization
+- [ ] Export generated stories
+- [ ] Web deployment option
+
+### Research Directions
+- Reinforcement learning for narrative optimization
+- Cross-modal consistency models
+- Real-time style transfer
+- Emotional resonance mapping
 
 ## 🤝 Contributing
 
-This is an experimental research project under active development. Contributions are welcome in:
-- Optimization strategies
-- Additional AI model integrations
-- Narrative coherence improvements
-- Visual effect enhancements
-- Documentation and examples
+This is an experimental project by **0penAGI**. Contributions are welcome!
 
-## 📝 License
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request with detailed description
 
-Research project - see repository for specific licensing details.
+### Development Guidelines
+- Use type hints where possible
+- Add logging for new features
+- Test on multiple devices if possible
+- Document novel approaches
+
+## 📄 License
+
+This project is shared for research and educational purposes. See LICENSE for details.
 
 ## 🙏 Acknowledgments
 
-- **0penAGI** for the experimental framework
-- **Hugging Face** for model hosting
+- **0penAGI** team for the original implementation
+- **Stability AI** for Stable Diffusion
+- **Google** for Gemma models
+- **PyGame** community for multimedia framework
 - **Ollama** for local LLM serving
-- **Stability AI** for diffusion models
-- **Coqui AI** for TTS technology
 
-## 🔮 Future Directions
+## 📚 Citation
 
-- Multiplayer narrative experiences
-- Expanded world state systems
-- Additional visual style options
-- Exportable story recordings
-- Plugin system for custom AI models
+If you use this code in research, please cite:
+
+```bibtex
+@software{infinite_novel_2024,
+  title = {Infinite Novel: AI-Powered Interactive Narrative Engine},
+  author = {0penAGI},
+  year = {2024},
+  url = {https://github.com/0penAGI/InfiniteNovel}
+}
+```
+
+## 📞 Support
+
+- **Issues**: GitHub Issues tracker
+- **Discussions**: GitHub Discussions (if enabled)
+- **Email**: Check repository description
 
 ---
+
+**Note**: This is experimental software. Generated content may be unpredictable. Use responsibly and monitor resource usage.
 
 *"The network awaits your pulse. What story will you tell?"*
 
