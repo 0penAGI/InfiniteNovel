@@ -248,7 +248,6 @@ If you use this code in research, please cite:
 ## 📞 Support
 
 - **Issues**: GitHub Issues tracker
-- **Discussions**: GitHub Discussions (if enabled)
 - **Email**: Check repository description
 
 ---
