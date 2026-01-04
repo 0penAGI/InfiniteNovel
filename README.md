@@ -1,8 +1,8 @@
-# Infinite Novel: AI-Driven Interactive Story Engine
+# Infinite Novel - AI-Powered Interactive Narrative Engine
 
 ![Novel Screenshot](novel.png)
 ![Additional Screenshot](nolev.png)
-# Infinite Novel - AI-Powered Interactive Narrative Engine
+
 
 **Infinite Novel** is an experimental interactive narrative game that combines real-time AI generation with dynamic storytelling. Powered by multiple AI models, it creates a responsive sci-fi universe that evolves based on player actions through visual, auditory, and textual synthesis.
 
