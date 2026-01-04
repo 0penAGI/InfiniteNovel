@@ -291,7 +291,6 @@ class StoryDirector:
         return text.strip()
 
 
-# --- Удалено: embedding_to_text ---
 
 # Ядро движка
 class PulseCore:
@@ -762,7 +761,7 @@ async def play_music(core, mood_score=0.0, action_text="", story_progress=0, res
         logging.error(f"Ошибка воспроизведения музыки: {e}")
         return 0.0
 
-# Изображение
+# Изображение с микро-шейдером и low-res предсказанием
 async def generate_image(core, prompt, mood_score=0.0):
     if not pipe:
         return None, 0.0
@@ -770,12 +769,9 @@ async def generate_image(core, prompt, mood_score=0.0):
     if core.image_task and not core.image_task.done():
         return None, 0.0  # уже генерируется
 
-    # Новый промпт: используем последнее событие и текущую дугу
     last_event = core.world_state.get("last_event", "")
     arc = getattr(core.story, "arc", "awakening")
-    image_prompt = (
-        f"cinematic sci-fi scene, {arc} arc, {last_event}, emotional, high contrast, no text"
-    )
+    image_prompt = f"cinematic sci-fi scene, {arc} arc, {last_event}, emotional, high contrast, no text"
 
     init_image = core.morphing_new_image
     if init_image:
@@ -785,42 +781,68 @@ async def generate_image(core, prompt, mood_score=0.0):
 
     core.is_streaming = True
 
+    # Мини-NN для low-res предсказания
+    class MiniUNet(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.conv1 = nn.Conv2d(3, 8, 3, padding=1)
+            self.conv2 = nn.Conv2d(8, 3, 3, padding=1)
+        def forward(self, x):
+            x = torch.relu(self.conv1(x))
+            x = torch.sigmoid(self.conv2(x))
+            return x
+
+    mini_nn = MiniUNet().to(device)
+
+    def apply_micro_shader(surface):
+        arr = pygame.surfarray.array3d(surface).astype(np.float32)
+        arr = np.transpose(arr, (1,0,2))
+        h, w, _ = arr.shape
+        t = pygame.time.get_ticks() / 500.0
+        warp_x = np.sin(np.linspace(0, np.pi*4, w) + t) * 2
+        warp_y = np.cos(np.linspace(0, np.pi*4, h) + t) * 2
+        map_x, map_y = np.meshgrid(np.arange(w)+warp_x, np.arange(h)+warp_y)
+        displaced = cv2.remap(arr, map_x.astype(np.float32), map_y.astype(np.float32), cv2.INTER_LINEAR)
+        displaced = np.clip(displaced,0,255).astype(np.uint8)
+        displaced = np.transpose(displaced,(1,0,2))
+        return pygame.surfarray.make_surface(displaced)
+
     def callback(step, timestep, latents):
         try:
-            if step < 8:
+            start_step = 8
+            full_step = 16
+            if step < start_step:
                 return
 
             with torch.no_grad():
                 latents_ = latents / 0.18215
                 image = pipe.vae.decode(latents_).sample
-                image = (image / 2 + 0.5).clamp(0, 1)
-                image = image.cpu().permute(0, 2, 3, 1).numpy()[0]
-                image = (image * 255).astype(np.uint8)
+                image = (image / 2 + 0.5).clamp(0,1)
+                image = image.cpu().permute(0,2,3,1).numpy()[0]
+                image = (image*255).astype(np.uint8)
 
-            surface = pygame.surfarray.make_surface(
-                np.transpose(image, (1, 0, 2))
-            )
+            surface = pygame.surfarray.make_surface(np.transpose(image,(1,0,2)))
 
-            # мягко подмешиваем в текущий кадр
-            alpha = min((step - 8) / 10.0, 1.0) * 0.35
+            # микро-шейдер поверх
+            surface = apply_micro_shader(surface)
 
-            if core.morphing_new_image:
-                base = core.morphing_new_image
-                base_arr = pygame.surfarray.array3d(base)
-                base_arr = np.transpose(base_arr, (1, 0, 2))
+            # alpha растягивается от step 8 до 16
+            alpha = min(max((step-start_step)/(full_step-start_step)*0.35,0),0.35)
 
-                new_arr = pygame.surfarray.array3d(surface)
-                new_arr = np.transpose(new_arr, (1, 0, 2))
+            if core.morphing_new_image and alpha>0.0:
+                base_arr = np.transpose(pygame.surfarray.array3d(core.morphing_new_image),(1,0,2))
+                new_arr = np.transpose(pygame.surfarray.array3d(surface),(1,0,2))
 
-                blended = cv2.addWeighted(
-                    base_arr.astype(np.float32),
-                    1.0 - alpha,
-                    new_arr.astype(np.float32),
-                    alpha,
-                    0.0
-                ).astype(np.uint8)
+                # low-res prediction mini-NN
+                lr = cv2.resize(new_arr,(new_arr.shape[1]//4,new_arr.shape[0]//4))
+                lr_tensor = torch.tensor(lr/255.0).permute(2,0,1).unsqueeze(0).float().to(device)
+                with torch.no_grad():
+                    pred = mini_nn(lr_tensor)[0].permute(1,2,0).cpu().numpy()*255.0
+                pred = cv2.resize(pred,(new_arr.shape[1],new_arr.shape[0]))
+                new_arr = np.clip((1-alpha)*new_arr + alpha*pred,new_arr.min(),new_arr.max()).astype(np.uint8)
 
-                blended = np.transpose(blended, (1, 0, 2))
+                blended = cv2.addWeighted(base_arr.astype(np.float32),1.0-alpha,new_arr.astype(np.float32),alpha,0.0)
+                blended = np.transpose(blended,(1,0,2))
                 surface = pygame.surfarray.make_surface(blended)
 
             core.last_stream_surface = surface
@@ -850,21 +872,14 @@ async def generate_image(core, prompt, mood_score=0.0):
                         callback_steps=1
                     ).images[0]
 
-            image = await asyncio.get_event_loop().run_in_executor(
-                executor,
-                _gen
-            )
-
+            image = await asyncio.get_event_loop().run_in_executor(executor,_gen)
             img_array = np.array(image).astype(np.uint8)
-            surface = pygame.surfarray.make_surface(
-                np.transpose(img_array, (1, 0, 2))
-            )
+            surface = pygame.surfarray.make_surface(np.transpose(img_array,(1,0,2)))
 
             core.start_morphing(core.morphing_new_image or surface, surface)
             core.morphing_new_image = surface
             core.update_visual_features(surface)
             core.add_image_to_buffer(surface)
-
             return surface
         finally:
             core.is_streaming = False
