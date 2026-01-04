@@ -686,12 +686,14 @@ def generate_music_frequencies(
 async def play_music(core, mood_score=0.0, action_text="", story_progress=0, resonance=0.5, titan_relation=0.0):
     """
     Асинхронный бесконечный музыкальный генератор с паузами, дилеем и ревером.
+    WAV удаляются сразу после проигрывания.
     """
     try:
         sample_rate = 44100
         channel = pygame.mixer.Channel(0)
+
         while True:
-            # Генерируем сегмент
+            # --- сегмент ---
             segment_duration = np.random.uniform(2.0, 5.0)
             audio = generate_music_frequencies(
                 duration=segment_duration,
@@ -702,7 +704,6 @@ async def play_music(core, mood_score=0.0, action_text="", story_progress=0, res
                 titan_relation=titan_relation
             )
 
-            # Эффекты
             delay_samples = int(0.15 * sample_rate)
             reverb_samples = int(0.25 * sample_rate)
             decay = 0.6 + 0.3 * mood_score
@@ -721,37 +722,42 @@ async def play_music(core, mood_score=0.0, action_text="", story_progress=0, res
             audio = audio / (np.max(np.abs(audio)) + 1e-8)
             audio *= 0.8
 
-            # Сохраняем сегмент во временный WAV
             with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as fp:
                 scipy.io.wavfile.write(fp.name, sample_rate, audio.astype(np.float32))
-                core.audio_cache["current_segment"] = fp.name
+                segment_path = fp.name
 
-            # Воспроизведение сегмента
-            sound = pygame.mixer.Sound(fp.name)
+            sound = pygame.mixer.Sound(segment_path)
             channel.play(sound)
 
-            # Ждём окончания сегмента
-            segment_wait = segment_duration
             elapsed = 0.0
             dt = 0.1
-            while elapsed < segment_wait:
+            while elapsed < segment_duration:
                 await asyncio.sleep(dt)
                 elapsed += dt
 
-            # Пауза с ревером и дилеем
+            channel.stop()
+            os.unlink(segment_path)
+
+            # --- пауза ---
             pause_duration = np.random.uniform(1.0, 3.0)
             pause_audio = np.zeros(int(sample_rate * pause_duration), dtype=np.float32)
-            # Добавляем легкий ревер
+
             reverb_samples_pause = int(0.3 * sample_rate)
             for i in range(len(pause_audio)):
                 if i >= reverb_samples_pause:
                     pause_audio[i] += pause_audio[i - reverb_samples_pause] * 0.25
+
             with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as fp:
                 scipy.io.wavfile.write(fp.name, sample_rate, pause_audio.astype(np.float32))
-                core.audio_cache["current_pause"] = fp.name
-            pause_sound = pygame.mixer.Sound(fp.name)
+                pause_path = fp.name
+
+            pause_sound = pygame.mixer.Sound(pause_path)
             channel.play(pause_sound)
             await asyncio.sleep(pause_duration)
+
+            channel.stop()
+            os.unlink(pause_path)
+
     except Exception as e:
         logging.error(f"Ошибка воспроизведения музыки: {e}")
         return 0.0
@@ -780,29 +786,85 @@ async def generate_image(core, prompt, mood_score=0.0):
     core.is_streaming = True
 
     def callback(step, timestep, latents):
-        pass
+        try:
+            if step < 8:
+                return
+
+            with torch.no_grad():
+                latents_ = latents / 0.18215
+                image = pipe.vae.decode(latents_).sample
+                image = (image / 2 + 0.5).clamp(0, 1)
+                image = image.cpu().permute(0, 2, 3, 1).numpy()[0]
+                image = (image * 255).astype(np.uint8)
+
+            surface = pygame.surfarray.make_surface(
+                np.transpose(image, (1, 0, 2))
+            )
+
+            # мягко подмешиваем в текущий кадр
+            alpha = min((step - 8) / 10.0, 1.0) * 0.35
+
+            if core.morphing_new_image:
+                base = core.morphing_new_image
+                base_arr = pygame.surfarray.array3d(base)
+                base_arr = np.transpose(base_arr, (1, 0, 2))
+
+                new_arr = pygame.surfarray.array3d(surface)
+                new_arr = np.transpose(new_arr, (1, 0, 2))
+
+                blended = cv2.addWeighted(
+                    base_arr.astype(np.float32),
+                    1.0 - alpha,
+                    new_arr.astype(np.float32),
+                    alpha,
+                    0.0
+                ).astype(np.uint8)
+
+                blended = np.transpose(blended, (1, 0, 2))
+                surface = pygame.surfarray.make_surface(blended)
+
+            core.last_stream_surface = surface
+
+        except Exception as e:
+            logging.error(f"SD stream callback error: {e}")
 
     async def _run():
         try:
+            def _gen():
+                if init_image is not None:
+                    return pipe(
+                        prompt=image_prompt,
+                        init_image=init_image,
+                        strength=0.55,
+                        num_inference_steps=18,
+                        guidance_scale=7.0,
+                        callback=callback,
+                        callback_steps=1
+                    ).images[0]
+                else:
+                    return pipe(
+                        prompt=image_prompt,
+                        num_inference_steps=18,
+                        guidance_scale=7.0,
+                        callback=callback,
+                        callback_steps=1
+                    ).images[0]
+
             image = await asyncio.get_event_loop().run_in_executor(
                 executor,
-                lambda: pipe(
-                    prompt=image_prompt,
-                    image=init_image,
-                    strength=0.55 if init_image else 1.0,
-                    num_inference_steps=18,
-                    guidance_scale=7.0,
-                    callback=callback,
-                    callback_steps=1
-                ).images[0]
+                _gen
             )
+
             img_array = np.array(image).astype(np.uint8)
-            surface = pygame.surfarray.make_surface(np.transpose(img_array, (1, 0, 2)))
+            surface = pygame.surfarray.make_surface(
+                np.transpose(img_array, (1, 0, 2))
+            )
 
             core.start_morphing(core.morphing_new_image or surface, surface)
             core.morphing_new_image = surface
             core.update_visual_features(surface)
             core.add_image_to_buffer(surface)
+
             return surface
         finally:
             core.is_streaming = False
@@ -810,38 +872,46 @@ async def generate_image(core, prompt, mood_score=0.0):
     core.image_task = asyncio.create_task(_run())
     return None, 0.8
 
-# Голос
 async def speak(core, text):
-    if not tts:
-        logging.warning("TTS не доступен")
+    if not tts or not text.strip():
         return 0.0
-    sentences = text.split(". ")
-    audio_files = []
+
+    sentences = re.findall(r'[^.!?]+[.!?]?', text)
+    channel = pygame.mixer.Channel(1)
+
     try:
-        for i, sentence in enumerate(sentences):
+        for sentence in sentences:
             sentence = sentence.strip()
             if not sentence:
                 continue
-            sentence_key = f"{text[:20]}_{i}"
-            if sentence_key in core.audio_cache:
-                pygame.mixer.Channel(1).queue(pygame.mixer.Sound(core.audio_cache[sentence_key]))
-                continue
+
             with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as fp:
-                await asyncio.get_event_loop().run_in_executor(executor, lambda: tts.tts_to_file(
-                    text=sentence, file_path=fp.name, split_sentences=False, max_decoder_steps=20000
-                ))
-                core.audio_cache[sentence_key] = fp.name
-                audio_files.append(fp.name)
-                pygame.mixer.Channel(1).queue(pygame.mixer.Sound(fp.name))
+                await asyncio.get_event_loop().run_in_executor(
+                    executor,
+                    lambda: tts.tts_to_file(
+                        text=sentence,
+                        file_path=fp.name,
+                        split_sentences=False,
+                        max_decoder_steps=20000
+                    )
+                )
+                wav_path = fp.name
+
+            sound = pygame.mixer.Sound(wav_path)
+
+            while channel.get_busy():
+                await asyncio.sleep(0.02)
+
+            channel.play(sound)
+            await asyncio.sleep(sound.get_length() + 0.05)
+
+            channel.stop()
+            os.unlink(wav_path)
+
         return 0.8
+
     except Exception as e:
-        logging.error(f"Ошибка генерации голоса: {e}")
-        for f in audio_files:
-            if os.path.exists(f):
-                try:
-                    os.unlink(f)
-                except Exception:
-                    pass
+        logging.error(f"TTS error: {e}")
         return 0.0
 
 # Улучшенная интерпретация действия с учетом визуальных модификаторов и ключевых слов
@@ -988,6 +1058,7 @@ def generate_event(core, action_text, action_impact, focus):
     return speaker, dialogue, image_prompt
 
 # Основной цикл
+# Основной цикл
 async def main():
     core = PulseCore()
     
@@ -995,17 +1066,18 @@ async def main():
     start_dialogue = "Welcome to the Pulsating Network. You are the Pulse, the bringer of freedom. What will you do?"
     core.set_dialogue(start_dialogue)
     
-    # генерим стартовое изображение (пульсирующая сеть)
     start_image_prompt = "A cosmic void with golden and blue threads forming a pulsating network, radiant light at the center"
     start_image_surface = await core.pregenerate_image(start_image_prompt, core.memory["mood_score"])
     if start_image_surface:
         core.start_morphing(start_image_surface, start_image_surface)
+        core.morphing_old_image = start_image_surface
+        core.morphing_new_image = start_image_surface
         img = pygame.transform.scale(start_image_surface, (SCREEN_WIDTH, SCREEN_HEIGHT))
         screen.blit(img, (0, 0))
         pygame.display.flip()
     
-    # сразу озвучиваем стартовую фразу
-    await speak(core, start_dialogue)
+    # ❗ НЕ БЛОКИРУЕМ LOOP
+    asyncio.create_task(speak(core, start_dialogue))
     speaker = "Pulse::awakening"
     
     image_surface = core.morphing_new_image
@@ -1015,32 +1087,32 @@ async def main():
 
     input_text = ""
     dialogue_score = None
-    stream_index = 0
 
     running = True
     while running:
         current_time = pygame.time.get_ticks()
-        
         draw_pulsating_background(screen, core.memory["mood_score"], generating)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     pygame.display.toggle_fullscreen()
+
                 elif event.key == pygame.K_RETURN and input_text.strip() and not generating:
                     generating = True
-                    stream_index = 0
+
                     sentiment, score, action_impact, focus = interpret_action(input_text, core)
                     core.grow_network(action_impact)
 
                     # === HARD FAIL STATE ===
                     if core.world_state["collapse"] >= 1.0:
                         core.set_dialogue("The network collapses. There will be no continuation.")
-                        # Для TTS убираем * (bold)
-                        tts_text = "The network collapses. There will be no continuation."
-                        await speak(core, tts_text)
+                        asyncio.create_task(
+                            speak(core, "The network collapses. There will be no continuation.")
+                        )
                         await asyncio.sleep(3)
                         return
 
@@ -1049,65 +1121,92 @@ async def main():
                         core.visual_features["contrast"],
                         core.visual_features["edges"]
                     ]
-                    input_vec = torch.tensor([[score] + visual_vec + [0] * 6], dtype=torch.float32).unsqueeze(0).to(device)
+
+                    input_vec = torch.tensor(
+                        [[score] + visual_vec + [0] * 6],
+                        dtype=torch.float32
+                    ).unsqueeze(0).to(device)
+
                     with torch.no_grad():
                         pred, hidden = core.fractal_memory(input_vec, hidden)
                     predicted_score = pred[0, 0, 0].item()
 
-                    qnn_input = torch.tensor([[score] + visual_vec + [0] * 6], dtype=torch.float32).to(device)
+                    qnn_input = torch.tensor(
+                        [[score] + visual_vec + [0] * 6],
+                        dtype=torch.float32
+                    ).to(device)
+
                     with torch.no_grad():
                         qnn_pred = core.quantum_nn(qnn_input)
                     qnn_score = qnn_pred[0, 0].item()
 
-                    predicted_sentiment = core.quantum_memory.predict(sentiment, core.visual_features)
+                    predicted_sentiment = core.quantum_memory.predict(
+                        sentiment, core.visual_features
+                    )
                     core.quantum_memory.update(sentiment, predicted_sentiment, input_text)
 
                     core.memory["prompts"].append(input_text)
                     core.memory["sentiments"].append(sentiment)
-                    core.memory["mood_score"] = min(max(
-                        core.memory["mood_score"] + (predicted_score + qnn_score) * 0.1, -1.0), 1.0)
+                    core.memory["mood_score"] = min(
+                        max(core.memory["mood_score"] + (predicted_score + qnn_score) * 0.1, -1.0),
+                        1.0
+                    )
 
                     try:
-                        speaker, dialogue, image_prompt = generate_event(core, input_text, action_impact, focus)
+                        speaker, dialogue, image_prompt = generate_event(
+                            core, input_text, action_impact, focus
+                        )
                         core.set_dialogue(dialogue)
                     except Exception as e:
                         logging.error(f"Ошибка генерации события: {e}")
-                        speaker, dialogue, image_prompt = "Error Entity", "Something went wrong. Try again.", image_prompt
+                        speaker = "Error Entity"
+                        dialogue = "Something went wrong. Try again."
                         core.set_dialogue(dialogue)
 
-                    # После генерации события — ЗАПИСЫВАЙ ЕГО В ПАМЯТЬ
                     core.record_event(input_text, action_impact, predicted_sentiment)
 
-                    # Для TTS убираем * (bold)
+                    # ❗ TTS ПАРАЛЛЕЛЬНО
                     tts_text = dialogue.replace("*", "")
-                    text_quality = await speak(core, tts_text)
-                    _, image_quality = await generate_image(core, image_prompt, core.memory["mood_score"])
-                    audio_quality = 0.8  # бесконечная музыка уже играет в фоне
+                    asyncio.create_task(speak(core, tts_text))
+                    text_quality = 0.8
+
+                    _, image_quality = await generate_image(
+                        core, image_prompt, core.memory["mood_score"]
+                    )
+                    audio_quality = 0.8
 
                     core.self_program(image_quality, audio_quality, text_quality)
 
                     input_text = ""
                     dialogue_score = None
                     generating = False
+
                 elif event.key == pygame.K_BACKSPACE:
                     input_text = input_text[:-1]
-                elif event.key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5) and not generating:
-                    score_map = {pygame.K_1: 0.2, pygame.K_2: 0.4, pygame.K_3: 0.6, pygame.K_4: 0.8, pygame.K_5: 1.0}
-                    dialogue_score = score_map[event.key]
-                    core.update_dialogue_preference(core.current_dialogue, dialogue_score)
-                    logging.info(f"Dialogue rated: {dialogue_score}")
+
                 else:
                     input_text += event.unicode
 
         displayed_text = core.animate_text(current_time)
+        current_image = image_surface  # держим последний валидный кадр
+
+        # --- Streamed image: если есть last_stream_surface, показать его поверх image_surface ---
+        if core.last_stream_surface is not None:
+            image_surface = core.last_stream_surface
+
+        # дальше код рендера — БЕЗ ИЗМЕНЕНИЙ
 
         # Показываем только морфинг и пост-обработку, не отображая напрямую кадры генерации SD
         if image_surface or core.morphing_old_image or core.morphing_new_image:
-            current_image = core.apply_morphing(current_time)
+            img = core.apply_morphing(current_time)
+            if img is not None:
+                current_image = img
             current_image = apply_displacement(current_image, core.displacement_strength)
             current_image = core.apply_feedback_loop(current_image)
             current_image = core.apply_glow(current_image)
             current_image = apply_sharpen(current_image, strength=1.0)
+        if current_image:
+            image_surface = current_image
         else:
             current_image = None
 
@@ -1154,7 +1253,7 @@ async def main():
 
         pygame.display.flip()
         clock.tick(30)
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0)
 
     for f in core.audio_cache.values():
         if os.path.exists(f):
