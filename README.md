@@ -72,6 +72,9 @@ ollama pull gemma3:1b  # or gemma3:4b
 5. **Add intro video (optional):**
 ```bash
 Place intro.mp4 in the game directory for an opening cinematic.
+```
+6. **pull ollama:**
+```bash
 ollama pull gemma3:1b  # or gemma3:4b
 ```
 
