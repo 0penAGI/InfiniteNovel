@@ -73,7 +73,7 @@ ollama pull gemma3:1b  # or gemma3:4b
 ```bash
 Place intro.mp4 in the game directory for an opening cinematic.
 ```
-6. **pull ollama:**
+6. **Pull ollama:**
 ```bash
 ollama pull gemma3:1b  # or gemma3:4b
 ```
