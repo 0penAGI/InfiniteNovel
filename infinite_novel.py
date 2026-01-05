@@ -1,3 +1,5 @@
+#infinite_novel.py - https://github.com/0penAGI/InfiniteNovel/tree/main 
+# open-source by 0penAGI 
 import pygame
 import numpy as np
 import torch
@@ -16,28 +18,32 @@ from collections import defaultdict
 import random
 import textwrap
 import re
-# --- Рендер текста с поддержкой *bold* и динамическим переносом по ширине экрана ---
 import cv2
 import scipy.signal
 import scipy.io.wavfile
 import requests
+import threading
+import functools
+import collections
+import time
+import moviepy.editor as mp
 
-#infinite_novel.py
 
 
-# Настройка логирования
+
+logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Инициализация Pygame
+# Initial Pygame
 pygame.init()
 pygame.mixer.init(frequency=44100, size=-16, channels=2)
 
-# Соотношение сторон 2.35:1 и разрешение
+# Aspect ratio and resolution
 ASPECT_RATIO = 4.2
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = int(SCREEN_WIDTH / ASPECT_RATIO)
 
-# Проверка совместимости разрешения
+# Chech resolution
 display_info = pygame.display.Info()
 max_width = display_info.current_w
 if max_width < SCREEN_WIDTH:
@@ -47,16 +53,16 @@ if max_width < SCREEN_WIDTH:
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
 pygame.display.set_caption("Infinite Novel")
 
-# Динамическая настройка шрифта
+# Dynamic fonts
 font_size = int(SCREEN_HEIGHT / 25)
 font = pygame.font.SysFont("arial", font_size)
 clock = pygame.time.Clock()
 
-# Определение устройства
+# Which technology, gpu or cpu?
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 logging.info(f"Используется устройство: {device}")
 
-# Глобальный пул потоков
+# Global pull 
 executor = ThreadPoolExecutor(max_workers=2)
 
 # Stable Diffusion
@@ -79,7 +85,7 @@ except Exception as e:
     logging.error(f"Ошибка загрузки TTS: {e}")
     tts = None
 
-# Анализ настроения
+# Mood analysis
 try:
     sentiment_analyzer = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english", device=device if device != "mps" else -1)
 except Exception as e:
@@ -114,7 +120,7 @@ def render_bold_wrapped(text, font, color, screen, x, y, line_spacing, max_width
             current_x += word_width
         bold = not bold
 
-# Квантовая нейронная сеть
+# Quantum like neural network
 class QuantumNeuralNetwork(nn.Module):
     def __init__(self, input_size=10, hidden_size=20):
         super().__init__()
@@ -127,7 +133,7 @@ class QuantumNeuralNetwork(nn.Module):
         quantum_layer = x * torch.cos(self.quantum_weights) + torch.sin(self.quantum_weights)
         return self.fc2(quantum_layer)
 
-# Фрактальная память
+# Fractal Memory
 class FractalMemory(nn.Module):
     def __init__(self, input_size=10, hidden_size=20):
         super().__init__()
@@ -156,7 +162,7 @@ class FractalMemory(nn.Module):
         out = self.fc(out)
         return out, hidden
 
-# Квантовые кристаллы
+# Quantum like Crystals
 class QuantumMemory:
     def __init__(self):
         self.transitions = defaultdict(lambda: defaultdict(int))
@@ -189,7 +195,7 @@ class QuantumMemory:
             probs /= probs.sum()
         return np.random.choice(self.states, p=probs)
 
-# --- Gemma3:4b генерация через Ollama ---
+# --- Gemma3:4b generation thrue Ollama ---
 def gemma3_generate(prompt: str, history=None, model="gemma3:1b"):
     """
     Вызывает локальный Ollama сервер, чтобы получить ответ от Gemma 3:1b.
@@ -224,7 +230,7 @@ def gemma3_generate(prompt: str, history=None, model="gemma3:1b"):
         return ""
 
 
-# --- Новый класс StoryDirector с памятью Gemma3 и профилем игрока ---
+# ---  StoryDirector with memory Gemma3 and user profile ---
 class StoryDirector:
     def __init__(self):
         self.arc = "awakening"
@@ -233,8 +239,8 @@ class StoryDirector:
         self.history = []
         self.thread_influence = defaultdict(float)
         self.last_visual_context = {}
-        self.conversation_memory = []  # последние реплики игрока и системы
-        self.player_profile = []       # 30-50 реплик игрока для формирования «пульса»
+        self.conversation_memory = []  # last conversation
+        self.player_profile = []       # 30-50 replies for forming «Pulse»
 
     def advance_arc(self, impact, mood, threads=None, visual=None):
         thread_boost = sum(min(v, 1.0) for v in threads.values()) * 0.1 if threads else 0.0
@@ -292,7 +298,7 @@ class StoryDirector:
 
 
 
-# Ядро движка
+# Core
 class PulseCore:
     def __init__(self):
         self.memory = {
@@ -327,7 +333,7 @@ class PulseCore:
         self.feedback_opacity = 0.2
         self.displacement_strength = 10.0
         self.visual_features = {"brightness": 0.0, "contrast": 0.0, "edges": 0.0}
-        self.morphing_state = {"active": False, "start_time": 0, "duration": 7000}
+        self.morphing_state = {"active": False, "start_time": 0, "duration": 12000}  # longer for smoother morph
         self.morphing_old_image = None
         self.morphing_new_image = None
         self.stream_buffer = []
@@ -341,7 +347,7 @@ class PulseCore:
         self.stream_fade_alpha = 0.0
         self.stream_fade_speed = 0.08
         self.stream_last_surface = None
-        
+
         # === WORLD FAILURE STATE (GAME LAYER) ===
         self.world_state = {
             "collapse": 0.0,
@@ -349,6 +355,7 @@ class PulseCore:
             "locks": set(),
             "titan_timer": 120
         }
+        self.pain_level = 0.0  # Subjectivity pain of system
 
     def evaluate_quality(self, data, data_type):
         if data_type == "image":
@@ -511,7 +518,9 @@ class PulseCore:
             return self.morphing_new_image or self.morphing_old_image
 
         elapsed = current_time - self.morphing_state["start_time"]
-        alpha = min(elapsed / self.morphing_state["duration"], 1.0)
+        # ease-in-out cubic for smoother morphing
+        t = min(elapsed / self.morphing_state["duration"], 1.0)
+        alpha = t * t * (3 - 2 * t)
         logging.info(f"Morphing alpha: {alpha:.2f}, elapsed: {elapsed}, duration: {self.morphing_state['duration']}")
 
         if alpha >= 1.0:
@@ -553,7 +562,7 @@ class PulseCore:
             logging.error(f"Ошибка предгенерации изображения: {e}")
             return None
 
-# Дисплейсмент-эффект
+# displacement effect
 def apply_displacement(image_surface, strength=10.0):
     img_array = pygame.surfarray.array3d(image_surface)
     img_array = np.transpose(img_array, (1, 0, 2))
@@ -578,7 +587,7 @@ def apply_displacement(image_surface, strength=10.0):
     displaced = np.transpose(displaced, (1, 0, 2))
     return pygame.surfarray.make_surface(displaced)
 
-# Эффект резкости (шарпен)
+# Sharpen effect 
 def apply_sharpen(image_surface, strength=1.0):
     img_array = pygame.surfarray.array3d(image_surface)
     img_array = np.transpose(img_array, (1, 0, 2)).astype(np.float32)
@@ -594,7 +603,7 @@ def apply_sharpen(image_surface, strength=1.0):
     sharpened = np.transpose(sharpened, (1, 0, 2))
     return pygame.surfarray.make_surface(sharpened)
 
-# Пульсирующий фон
+# Pulsating background
 def draw_pulsating_background(screen, mood_score, generating):
     pulse = np.sin(pygame.time.get_ticks() / 2000.0) * 0.5 + 0.5
     intensity = 20 + pulse * 10 if generating else 10 + pulse * 5
@@ -605,7 +614,7 @@ def draw_pulsating_background(screen, mood_score, generating):
     )
     screen.fill(color)
 
-# Музыка
+# Music
 def generate_music_frequencies(
     duration=3.0,
     sample_rate=44100,
@@ -761,7 +770,78 @@ async def play_music(core, mood_score=0.0, action_text="", story_progress=0, res
         logging.error(f"Ошибка воспроизведения музыки: {e}")
         return 0.0
 
-# Изображение с микро-шейдером и low-res предсказанием
+
+# Cache for intro video
+_intro_video_cache = {
+    "frames": None,
+    "path": None,
+    "size": None,
+}
+
+async def play_intro_video(core, path="intro.mp4"):
+    """
+    Асинхронно проигрывает видео с аудио на экране.
+    Не блокирует event loop.
+    """
+    global _intro_video_cache
+
+
+    if (_intro_video_cache["frames"] is None or
+        _intro_video_cache["path"] != path or
+        _intro_video_cache["size"] != (SCREEN_WIDTH, SCREEN_HEIGHT)):
+        cap = cv2.VideoCapture(path)
+        frames = []
+        success, frame = cap.read()
+        while success:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = cv2.resize(frame, (SCREEN_WIDTH, SCREEN_HEIGHT))
+            surf = pygame.surfarray.make_surface(np.transpose(frame, (1,0,2)))
+            frames.append(surf)
+            success, frame = cap.read()
+        cap.release()
+        _intro_video_cache["frames"] = frames
+        _intro_video_cache["path"] = path
+        _intro_video_cache["size"] = (SCREEN_WIDTH, SCREEN_HEIGHT)
+    else:
+        frames = _intro_video_cache["frames"]
+
+    if not frames:
+        logging.warning("No intro frames loaded.")
+        return
+
+    try:
+        clip = mp.VideoFileClip(path)
+        if clip.audio:
+            clip.audio.write_audiofile("intro_audio.wav", verbose=False, logger=None)
+            sound = pygame.mixer.Sound("intro_audio.wav")
+            channel = pygame.mixer.Channel(2)
+            channel.play(sound)
+    except Exception as e:
+        logging.error(f"Ошибка воспроизведения аудио интро: {e}")
+
+
+    idx = 0
+    n = len(frames)
+    frame_time = 1.0 / 24.0
+    while True:
+        if hasattr(core, "stop_intro") and core.stop_intro:
+            break
+        screen.blit(frames[idx], (0,0))
+        pygame.display.flip()
+        idx = (idx + 1) % n
+        await asyncio.sleep(frame_time)
+
+
+    if 'channel' in locals() and channel.get_busy():
+        fade_duration = 2.0  # секунды
+        steps = 20
+        original_volume = channel.get_volume()
+        for i in range(steps):
+            channel.set_volume(original_volume * (1 - (i + 1)/steps))
+            await asyncio.sleep(fade_duration / steps)
+        channel.stop()
+
+# Generate Image 
 async def generate_image(core, prompt, mood_score=0.0):
     if not pipe:
         return None, 0.0
@@ -781,7 +861,7 @@ async def generate_image(core, prompt, mood_score=0.0):
 
     core.is_streaming = True
 
-    # Мини-NN для low-res предсказания
+    # Mini NN net
     class MiniUNet(nn.Module):
         def __init__(self):
             super().__init__()
@@ -872,14 +952,39 @@ async def generate_image(core, prompt, mood_score=0.0):
                         callback_steps=1
                     ).images[0]
 
-            image = await asyncio.get_event_loop().run_in_executor(executor,_gen)
+            image = await asyncio.get_event_loop().run_in_executor(executor, _gen)
             img_array = np.array(image).astype(np.uint8)
-            surface = pygame.surfarray.make_surface(np.transpose(img_array,(1,0,2)))
+            surface = pygame.surfarray.make_surface(np.transpose(img_array, (1, 0, 2)))
 
             core.start_morphing(core.morphing_new_image or surface, surface)
             core.morphing_new_image = surface
             core.update_visual_features(surface)
             core.add_image_to_buffer(surface)
+
+            # === Online learning MiniUNet step ===
+            # Prepare a small image tensor from surface
+            arr = pygame.surfarray.array3d(surface).astype(np.float32)
+            arr = np.transpose(arr, (1, 0, 2))
+            # Downscale for speed
+            arr_lr = cv2.resize(arr, (arr.shape[1] // 4, arr.shape[0] // 4))
+            input_tensor = torch.tensor(arr_lr / 255.0).permute(2, 0, 1).unsqueeze(0).float().to(device)
+            target_tensor = input_tensor.clone()
+            # Add small noise for denoising task
+            noisy_tensor = input_tensor + 0.04 * torch.randn_like(input_tensor)
+            noisy_tensor = torch.clamp(noisy_tensor, 0.0, 1.0)
+            # Setup optimizer and loss
+            criterion = nn.MSELoss()
+            optimizer = torch.optim.Adam(mini_nn.parameters(), lr=1e-4)
+            mini_nn.train()
+            for _ in range(1):  # one epoch
+                optimizer.zero_grad()
+                output = mini_nn(noisy_tensor)
+                loss = criterion(output, target_tensor)
+                loss.backward()
+                optimizer.step()
+            mini_nn.eval()
+            # === End online learning step ===
+
             return surface
         finally:
             core.is_streaming = False
@@ -929,7 +1034,7 @@ async def speak(core, text):
         logging.error(f"TTS error: {e}")
         return 0.0
 
-# Улучшенная интерпретация действия с учетом визуальных модификаторов и ключевых слов
+
 def interpret_action(action_text, core):
     action_text = action_text.lower()
     sentiment = "NEUTRAL"
@@ -937,7 +1042,7 @@ def interpret_action(action_text, core):
     action_impact = 0.0
     focus = None
 
-    # Анализируем настроение
+
     if sentiment_analyzer:
         try:
             sentiment_result = sentiment_analyzer(action_text)[0]
@@ -947,7 +1052,6 @@ def interpret_action(action_text, core):
         except Exception as e:
             logging.error(f"Ошибка анализа настроения: {e}")
 
-    # Ключевые слова и визуальные модификаторы
     keywords = {
         "titan": {"weight": 0.5, "focus": "Megatitan"},
         "network": {"weight": 0.5, "focus": "IGI Node"},
@@ -975,19 +1079,21 @@ def interpret_action(action_text, core):
             if "visual" in data:
                 visual_modifiers[data["visual"]] += data.get("weight", 0.0)
 
-    # Усиливаем влияние визуальных особенностей мира
+
     visual = getattr(core, "visual_features", {})
     if visual:
         action_impact += (visual.get("contrast", 0) - 0.3) * 0.15
         action_impact += (visual.get("brightness", 0) - 0.5) * 0.1
-        # edges усиливают эффект разрушения
+
         if "fracture" in action_text or "edges" in visual_modifiers:
             action_impact += (visual.get("edges", 0) - 0.2) * 0.2
+
+
+    action_impact *= 1 + core.pain_level * 0.5
 
     action_impact = min(max(action_impact * (total_weight / 1.0 if total_weight > 0 else 1), -0.5), 0.5)
     return sentiment, score, action_impact, focus
 
-# Улучшенная генерация событий с усиленной связью нитей, визуального контекста и событий
 def generate_event(core, action_text, action_impact, focus):
     # === WORLD ACTS WITHOUT PLAYER ===
     core.world_state["titan_timer"] -= 1
@@ -1012,7 +1118,7 @@ def generate_event(core, action_text, action_impact, focus):
             "collapsed void, broken light structures, no hope"
         )
 
-    # Обновляем сюжетную дугу с учетом нитей и визуального контекста
+
     core.story.advance_arc(
         action_impact,
         core.memory["mood_score"],
@@ -1021,7 +1127,9 @@ def generate_event(core, action_text, action_impact, focus):
     )
     core.story.next_beat(action_text, threads=core.memory["threads"])
 
-    # Сюжетная реплика (человеческая, не абстрактная), теперь с усиленной связью нитей и визуального контекста
+    core.pain_level = min(1.0, (core.world_state["collapse"] + core.world_state["instability"]) / 2)
+
+
     narrative_reply = core.story.respond(
         action_text,
         core.memory["mood_score"],
@@ -1029,7 +1137,7 @@ def generate_event(core, action_text, action_impact, focus):
         core
     )
 
-    # Конкретное событие мира, теперь с учетом самой сильной сюжетной нити
+
     top_threads = sorted(core.memory["threads"].items(), key=lambda x: -x[1])
     thread_event = None
     if top_threads:
@@ -1043,7 +1151,7 @@ def generate_event(core, action_text, action_impact, focus):
             "light": "A surge of radiant light illuminates hidden paths.",
             "dark": "A shroud of darkness envelops a sector.",
         }.get(strongest_thread, None)
-    # Если нет подходящей сюжетной нити, используем стандартное событие дуги
+
     story_arc = getattr(core.story, "arc", "awakening")
     world_event = thread_event or {
         "awakening": "A new node ignites within the network.",
@@ -1052,17 +1160,17 @@ def generate_event(core, action_text, action_impact, focus):
         "synthesis": "The world restructures into a more stable form."
     }[story_arc]
 
-    # Фиксируем изменения мира
+
     core.memory["world_state"]["last_event"] = world_event  # только для изображения
     core.memory["world_state"]["arc"] = story_arc
 
-    # Спикер теперь сюжетный
+
     speaker = f"Pulse::{story_arc}"
 
-    # Итоговый диалог — только сюжетная реплика, без world_event и без системных строк
+
     dialogue = narrative_reply  # игрок слышит только сюжетный диалог
 
-    # Промпт изображения теперь отражает событие и главную сюжетную нить
+
     image_prompt = (
         f"cinematic sci-fi scene, {story_arc} arc, "
         f"{world_event}, "
@@ -1072,17 +1180,29 @@ def generate_event(core, action_text, action_impact, focus):
 
     return speaker, dialogue, image_prompt
 
-# Основной цикл
-# Основной цикл
 async def main():
     core = PulseCore()
-    
-    # --- стартовая фраза и изображение ---
+
+
+    core.stop_intro = False
+    intro_task = asyncio.create_task(play_intro_video(core, path="intro.mp4"))
+
+
     start_dialogue = "Welcome to the Pulsating Network. You are the Pulse, the bringer of freedom. What will you do?"
     core.set_dialogue(start_dialogue)
-    
+
     start_image_prompt = "A cosmic void with golden and blue threads forming a pulsating network, radiant light at the center"
     start_image_surface = await core.pregenerate_image(start_image_prompt, core.memory["mood_score"])
+
+
+    core.stop_intro = True
+    await asyncio.sleep(0.1)  # дать таску завершиться
+    if intro_task and not intro_task.done():
+        try:
+            await asyncio.wait_for(intro_task, timeout=1.0)
+        except Exception:
+            pass
+
     if start_image_surface:
         core.start_morphing(start_image_surface, start_image_surface)
         core.morphing_old_image = start_image_surface
@@ -1090,11 +1210,11 @@ async def main():
         img = pygame.transform.scale(start_image_surface, (SCREEN_WIDTH, SCREEN_HEIGHT))
         screen.blit(img, (0, 0))
         pygame.display.flip()
-    
-    # ❗ НЕ БЛОКИРУЕМ LOOP
+
+
     asyncio.create_task(speak(core, start_dialogue))
     speaker = "Pulse::awakening"
-    
+
     image_surface = core.morphing_new_image
     generating = False
     hidden = None
@@ -1180,7 +1300,7 @@ async def main():
 
                     core.record_event(input_text, action_impact, predicted_sentiment)
 
-                    # ❗ TTS ПАРАЛЛЕЛЬНО
+
                     tts_text = dialogue.replace("*", "")
                     asyncio.create_task(speak(core, tts_text))
                     text_quality = 0.8
@@ -1209,9 +1329,7 @@ async def main():
         if core.last_stream_surface is not None:
             image_surface = core.last_stream_surface
 
-        # дальше код рендера — БЕЗ ИЗМЕНЕНИЙ
 
-        # Показываем только морфинг и пост-обработку, не отображая напрямую кадры генерации SD
         if image_surface or core.morphing_old_image or core.morphing_new_image:
             img = core.apply_morphing(current_time)
             if img is not None:
@@ -1240,13 +1358,13 @@ async def main():
         speaker_surface = font.render(f"{speaker}:", True, (200, 200, 255))
         screen.blit(speaker_surface, (margin, text_y_start))
 
-        # --- Используем render_bold_wrapped для текста с *bold* ---
+
         render_bold_wrapped(displayed_text, font, (255, 255, 255), screen, margin, text_y_start + line_spacing, line_spacing)
 
         txt_surface = font.render(">> " + input_text, True, (255, 255, 255))
         screen.blit(txt_surface, (margin, text_y_start + line_spacing * 3))
 
-        # Добавляем отображение состояния мира
+
         world_status = f"Collapse: {core.world_state['collapse']:.1f} | Instability: {core.world_state['instability']:.1f} | Locks: {len(core.world_state['locks'])}"
         world_surface = font.render(world_status, True, (255, 150, 150) if core.world_state["collapse"] > 0.5 else (200, 200, 255))
         screen.blit(world_surface, (margin, text_y_start + line_spacing * 4))
