@@ -1,4 +1,4 @@
-# Infinite Novel - AI-Powered Interactive Narrative Engine
+# Infinite Novel - Local AI-Powered Interactive Narrative Engine
 
 ![Novel Screenshot](novel.png)
 ![Additional Screenshot](nolev.png)
