@@ -39,8 +39,8 @@ pygame.init()
 pygame.mixer.init(frequency=44100, size=-16, channels=2)
 
 # Aspect ratio and resolution
-ASPECT_RATIO = 3.1
-SCREEN_WIDTH = 1280
+ASPECT_RATIO = 3.51
+SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = int(SCREEN_WIDTH / ASPECT_RATIO)
 
 # Chech resolution
@@ -348,6 +348,12 @@ class PulseCore:
         self.stream_fade_speed = 0.08
         self.stream_last_surface = None
 
+        self.music_state = {
+            "mode": "drone",
+            "mutation": 0.0,
+            "age": 0
+        }
+
         # === WORLD FAILURE STATE (GAME LAYER) ===
         self.world_state = {
             "collapse": 0.0,
@@ -614,7 +620,6 @@ def draw_pulsating_background(screen, mood_score, generating):
     )
     screen.fill(color)
 
-# Music
 def generate_music_frequencies(
     duration=3.0,
     sample_rate=44100,
@@ -625,6 +630,8 @@ def generate_music_frequencies(
     titan_relation=0.0,
     act_transition_steps=11
 ):
+    # --- stochastic evolutionary music engine ---
+    rng = np.random.rand()
     t = np.linspace(0, duration, int(sample_rate * duration), False)
     
     act = 2 if story_progress > 100 else 1
@@ -648,26 +655,60 @@ def generate_music_frequencies(
     elif is_explorative:
         base_freq *= 0.9
 
-    if act == 1 and transition_progress == 0:
-        freqs = [base_freq, base_freq * 1.5, base_freq * 2]
-        amplitudes = [1.0, 0.6, 0.3]
-        texture = np.sin(2 * np.pi * 0.1 * t) * 0.2
-    elif act == 2 and transition_progress == 1:
-        freqs = [base_freq, base_freq * 1.3, base_freq * 1.8, base_freq * 2.5]
-        amplitudes = [1.0, 0.8, 0.5, 0.3]
-        texture = np.sin(2 * np.pi * 0.5 * t) * 0.3 + np.random.normal(0, 0.05, t.shape)
+    # --- evolutionary modes ---
+    if rng < 0.15:
+        mode = "silence"
+    elif rng < 0.35:
+        mode = "glitch"
+    elif rng < 0.6:
+        mode = "rhythm"
+    elif rng < 0.8:
+        mode = "swell"
     else:
-        freqs = [
-            base_freq * (1 + 0.3 * transition_progress),
-            base_freq * (1.5 + 0.3 * transition_progress),
-            base_freq * (2 + 0.5 * transition_progress)
-        ]
-        amplitudes = [
-            1.0,
-            0.6 + 0.2 * transition_progress,
-            0.3 + 0.2 * transition_progress
-        ]
-        texture = np.sin(2 * np.pi * (0.1 + 0.4 * transition_progress) * t) * (0.2 + 0.1 * transition_progress)
+        mode = "drone"
+
+    if mode == "silence":
+        return np.zeros_like(t, dtype=np.float32)
+
+    elif mode == "glitch":
+        freqs = np.random.choice(
+            [base_freq * 0.5, base_freq, base_freq * 1.5],
+            size=3
+        )
+        amplitudes = np.random.uniform(0.3, 0.7, size=3)
+
+        # raw noise
+        noise = np.random.normal(0, 1, t.shape)
+
+        # slow envelope to avoid harshness
+        env = np.abs(np.sin(2 * np.pi * 0.15 * t))
+
+        # moving low-pass (manual smoothing)
+        cutoff = int(200 + 800 * np.abs(np.sin(2 * np.pi * 0.05 * t[0])))
+        kernel = np.ones(cutoff) / cutoff
+        filtered = np.convolve(noise, kernel, mode="same")
+
+        # subtle AM for dub/glitch texture
+        am = 0.4 + 0.6 * np.sin(2 * np.pi * 0.3 * t)
+
+        texture = filtered * env * am * 0.25
+
+    elif mode == "rhythm":
+        freqs = [base_freq, base_freq*1.5]
+        amplitudes = [1.0, 0.6]
+        lfo = (np.sin(2 * np.pi * (2 + 4 * transition_progress) * t) > 0).astype(np.float32)
+        texture = lfo * 0.8
+
+    elif mode == "swell":
+        freqs = [base_freq, base_freq*1.25, base_freq*1.8]
+        amplitudes = [0.4, 0.6, 0.8]
+        env = np.linspace(0, 1, len(t))
+        texture = env * np.sin(2 * np.pi * 0.1 * t)
+
+    else:  # drone
+        freqs = [base_freq, base_freq * 1.01, base_freq * 0.99]
+        amplitudes = [1.0, 0.7, 0.7]
+        texture = np.sin(2 * np.pi * 0.05 * t)
 
     freq_spectrum = np.zeros(int(sample_rate * duration // 2 + 1), dtype=np.complex128)
     for freq, amp in zip(freqs, amplitudes):
@@ -689,7 +730,9 @@ def generate_music_frequencies(
     if transition_progress > 0.5:
         waveform = scipy.signal.lfilter([1, -0.5], [1], waveform)
 
-    return waveform.astype(np.float32)
+    audio = waveform
+    audio = np.tanh(audio * 1.2)
+    return audio.astype(np.float32)
 
 async def play_music(core, mood_score=0.0, action_text="", story_progress=0, resonance=0.5, titan_relation=0.0):
     """
@@ -699,6 +742,8 @@ async def play_music(core, mood_score=0.0, action_text="", story_progress=0, res
     try:
         sample_rate = 44100
         channel = pygame.mixer.Channel(0)
+
+        local_mutation = 0.0
 
         while True:
             # --- сегмент ---
@@ -712,8 +757,13 @@ async def play_music(core, mood_score=0.0, action_text="", story_progress=0, res
                 titan_relation=titan_relation
             )
 
+            # evolutionary mutation drift
+            local_mutation += np.random.normal(0, 0.05)
+            local_mutation = np.clip(local_mutation, -1.0, 1.0)
+            audio *= (1.0 + local_mutation * 0.3)
+
             # STRONG dub delay (clearly audible)
-            delay_ms = 380
+            delay_ms = 555
             feedback = 0.75 + mood_score * 0.15
             wet = 0.7
 
@@ -753,7 +803,7 @@ async def play_music(core, mood_score=0.0, action_text="", story_progress=0, res
             os.unlink(segment_path)
 
             # --- пауза ---
-            pause_duration = np.random.uniform(1.0, 3.0)
+            pause_duration = np.random.uniform(1.0, 4.0)
             pause_audio = np.zeros(int(sample_rate * pause_duration), dtype=np.float32)
 
             reverb_samples_pause = int(0.3 * sample_rate)
