@@ -1,5 +1,5 @@
 #infinite_novel.py - https://github.com/0penAGI/InfiniteNovel/tree/main 
-# open-source by 0penAGI 
+# open-source by 0penAGI tested on MacBook M3 Pro 18gb 
 import pygame
 import numpy as np
 import torch
@@ -39,7 +39,7 @@ pygame.init()
 pygame.mixer.init(frequency=44100, size=-16, channels=2)
 
 # Aspect ratio and resolution
-ASPECT_RATIO = 4.2
+ASPECT_RATIO = 3.1
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = int(SCREEN_WIDTH / ASPECT_RATIO)
 
@@ -712,23 +712,29 @@ async def play_music(core, mood_score=0.0, action_text="", story_progress=0, res
                 titan_relation=titan_relation
             )
 
-            delay_samples = int(0.15 * sample_rate)
-            reverb_samples = int(0.25 * sample_rate)
-            decay = 0.6 + 0.3 * mood_score
-            wet = 0.5
+            # STRONG dub delay (clearly audible)
+            delay_ms = 380
+            feedback = 0.75 + mood_score * 0.15
+            wet = 0.7
 
-            delayed_audio = np.zeros_like(audio)
-            reverb_audio = np.zeros_like(audio)
+            delay_samples = int(sample_rate * delay_ms / 1000)
+            delayed = np.zeros_like(audio)
 
-            for i in range(len(audio)):
-                if i >= delay_samples:
-                    delayed_audio[i] = audio[i - delay_samples] * decay
-                if i >= reverb_samples:
-                    reverb_audio[i] = audio[i - reverb_samples] * 0.35
+            # multi-tap feedback for dub feel
+            for i in range(delay_samples, len(audio)):
+                delayed[i] = (
+                    audio[i - delay_samples] * feedback +
+                    delayed[i - delay_samples] * feedback * 0.9
+                )
 
-            audio = (1 - wet) * audio + wet * delayed_audio + reverb_audio
+            # slight pre-saturation
+            delayed = np.tanh(delayed * 1.4)
+
+            audio = (1 - wet) * audio + wet * delayed
+
+            # loudness compensation
             audio = audio / (np.max(np.abs(audio)) + 1e-8)
-            audio *= 0.8
+            audio *= 0.95
 
             with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as fp:
                 scipy.io.wavfile.write(fp.name, sample_rate, audio.astype(np.float32))
@@ -931,6 +937,7 @@ async def generate_image(core, prompt, mood_score=0.0):
             logging.error(f"SD stream callback error: {e}")
 
     async def _run():
+        
         try:
             def _gen():
                 if init_image is not None:
@@ -1017,7 +1024,29 @@ async def speak(core, text):
                 )
                 wav_path = fp.name
 
+            # load wav and apply dub delay
+            rate, data = scipy.io.wavfile.read(wav_path)
+
+            if data.dtype != np.float32:
+                data = data.astype(np.float32) / np.max(np.abs(data))
+
+            delay_ms = 320
+            feedback = 0.55
+            wet = 0.20
+            delay_samples = int(rate * delay_ms / 1000)
+
+            delayed = np.zeros_like(data)
+            for i in range(delay_samples, len(data)):
+                delayed[i] = data[i - delay_samples] * feedback + delayed[i - delay_samples] * feedback
+
+            effected = (1 - wet) * data + wet * delayed
+            effected = effected / (np.max(np.abs(effected)) + 1e-8)
+
+            scipy.io.wavfile.write(wav_path, rate, effected.astype(np.float32))
             sound = pygame.mixer.Sound(wav_path)
+
+            # intentional pre-speech delay
+            await asyncio.sleep(0.15)
 
             while channel.get_busy():
                 await asyncio.sleep(0.02)
