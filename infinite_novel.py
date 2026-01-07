@@ -29,9 +29,6 @@ import collections
 import time
 import moviepy.editor as mp
 
-
-
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Initial Pygame
@@ -52,11 +49,16 @@ if max_width < SCREEN_WIDTH:
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
 pygame.display.set_caption("Infinite Novel")
+pygame.mouse.set_visible(False)
 
 # Dynamic fonts
 font_size = int(SCREEN_HEIGHT / 25)
 font = pygame.font.SysFont("arial", font_size)
 clock = pygame.time.Clock()
+
+# --- Layout constants for text rendering ---
+TEXT_TOP_OFFSET = int(SCREEN_HEIGHT * 0.08)
+INPUT_BOTTOM_MARGIN = int(SCREEN_HEIGHT * 0.12)
 
 # Which technology, gpu or cpu?
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
@@ -75,14 +77,14 @@ try:
     pipe.enable_attention_slicing()
     pipe.safety_checker = None
 except Exception as e:
-    logging.error(f"Ошибка загрузки Stable Diffusion: {e}")
+    logging.error(f"Error Download Stable Diffusion: {e}")
     pipe = None
 
 # TTS с HiFi-GAN вокодером
 try:
     tts = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=False, gpu=(device == "cuda"))
 except Exception as e:
-    logging.error(f"Ошибка загрузки TTS: {e}")
+    logging.error(f"Error Downloadи TTS: {e}")
     tts = None
 
 # Mood analysis
@@ -93,7 +95,7 @@ try:
         device=0 if device == "cuda" else -1
     )
 except Exception as e:
-    logging.error(f"Ошибка загрузки sentiment-analyzer: {e}")
+    logging.error(f"Error Download sentiment-analyzer: {e}")
     sentiment_analyzer = None
 
 def sanitize_tts(text):
@@ -108,10 +110,7 @@ def sanitize_tts(text):
     )
 
 def render_bold_wrapped(text, font, color, screen, x, y, line_spacing, max_width=None, mask=None):
-    """
-    Рендер текста с *bold* выделением, перенос по ширине экрана.
-    Можно применять маску (Surface с alpha) к тексту.
-    """
+
     pattern = r"\*(.*?)\*"
     parts = re.split(pattern, text)
     bold = False
@@ -222,9 +221,8 @@ class QuantumMemory:
 # --- Gemma3:4b streaming generation through Ollama ---
 def gemma3_generate(prompt: str, history=None, model="gemma3:1b", on_token=None):
     """
-    Стриминговый вызов Ollama Gemma.
-    on_token(token: str) вызывается при каждом новом фрагменте текста.
-    Возвращает полный текст после завершения.
+    Stream Ollama Gemma.
+    on_token(token: str) 
     """
     import json
     url = "http://localhost:11434/api/chat"
@@ -348,7 +346,7 @@ class StoryDirector:
             f"World State: collapse={collapse:.1f}, instability={instability:.1f}, locks={locks}\n"
             f"Mood: {mood:.2f} | Resonance: {resonance:.2f}\n"
             f"Player Action: {intent}\n\n"
-            f"Respond as the world itself, remembering the player's past actions. Be human, direct, emotional. 1-2 sentences."
+            f"Respond as the world itself, what knews everything. remembering the player's past actions. Be human, shortly direct, emotional. 1-2 sentences. Need to choose. Sometimes ask an UNCOMFORTABLE queston."
         )
 
         self.conversation_memory.append({"role": "user", "content": context})
@@ -425,7 +423,7 @@ class PulseCore:
         self.feedback_opacity = 0.2
         self.displacement_strength = 10.0
         self.visual_features = {"brightness": 0.0, "contrast": 0.0, "edges": 0.0}
-        self.morphing_state = {"active": False, "start_time": 0, "duration": 12000}  # longer for smoother morph
+        self.morphing_state = {"active": False, "start_time": 0, "duration": 16187}  # longer for smoother morph
         self.morphing_old_image = None
         self.morphing_new_image = None
         self.stream_buffer = []
@@ -872,6 +870,29 @@ def generate_music_frequencies(
 
     sub *= 0.55
 
+    # === OTT-style sub enhancement (low-band only) ===
+    # split very-low band
+    b, a = scipy.signal.butter(4, 90 / (sample_rate * 0.5), btype="low")
+    sub_low = scipy.signal.lfilter(b, a, sub)
+
+    # upward compression
+    thresh = 0.18
+    ratio_up = 4.0
+    sub_up = np.sign(sub_low) * np.minimum(
+        np.abs(sub_low) * ratio_up,
+        thresh + (np.abs(sub_low) - thresh)
+    )
+
+    # downward compression
+    ratio_down = 6.0
+    sub_down = np.sign(sub_up) * np.minimum(
+        np.abs(sub_up),
+        thresh + (np.abs(sub_up) - thresh) / ratio_down
+    )
+
+    # blend back (OTT wet)
+    sub = sub * 0.6 + sub_down * 0.4
+
     # === granular texture layer ===
     grain_density = int(8 + context_energy * 18)
     grain_size = int(sample_rate * np.random.uniform(0.02, 0.06))  # 20–60 ms
@@ -925,6 +946,17 @@ def generate_music_frequencies(
     # === morphing envelope ===
     morph = 0.5 + 0.5 * np.sin(2 * np.pi * 0.07 * t + story_progress * 0.01)
 
+    # === quantum chaos layer ===
+    quantum_chaos = np.zeros_like(t)
+    if rng > 0.5:  # rare occurrence
+        chaos_freqs = base_freq * np.random.uniform(0.2, 2.0, size=3)
+        for f in chaos_freqs:
+            phase = np.random.rand() * 2 * np.pi
+            quantum_chaos += 0.15 * np.sin(2 * np.pi * f * t * (1.0 + np.sin(t*0.1)) + phase)
+        # occasional spike bursts
+        spikes = np.random.choice(len(t), size=len(t)//400, replace=False)
+        quantum_chaos[spikes] += np.random.uniform(-0.3, 0.3, size=len(spikes))
+
     # === layer fusion ===
     signal = (
         harmonic * morph +
@@ -933,7 +965,8 @@ def generate_music_frequencies(
         ghost +
         reverb_harm +
         grains +
-        sub
+        sub +
+        quantum_chaos
     )
 
     if mode in ["pulse", "swell"]:
@@ -987,6 +1020,23 @@ def generate_music_frequencies(
         tail *= fade
 
         signal = np.concatenate([signal, tail])
+
+    mod_depth = 0.14
+    mod_rate = 0.18
+    mod_phase = np.sin(2 * np.pi * mod_rate * np.arange(len(signal)) / sample_rate)
+    # Subtle amplitude modulation (like stereo vibrato)
+    signal = signal * (1.0 + mod_depth * mod_phase)
+    # Subtle short reverb (schroeder-like, single pass)
+    reverb_ms = 34  # short, subtle
+    reverb_samples = int(sample_rate * reverb_ms / 1000)
+    if reverb_samples > 2 and reverb_samples < len(signal):
+        rev = np.zeros_like(signal)
+        # simple feedback reverb with small amount
+        feedback = 0.22
+        for i in range(reverb_samples, len(signal)):
+            rev[i] = signal[i - reverb_samples] * feedback + rev[i - reverb_samples] * feedback * 0.6
+        # Mix with original, very subtly
+        signal = signal * 0.95 + rev * 0.15
 
     # === FINAL ANTI-CLICK SANITIZATION (MANDATORY) ===
 
@@ -1045,17 +1095,12 @@ async def play_music(core, mood_score=0.0, action_text="", story_progress=0, res
 
             delay_samples = int(sample_rate * delay_ms / 1000)
             delayed = np.zeros_like(audio)
-
-            # multi-tap feedback for dub feel
             for i in range(delay_samples, len(audio)):
                 delayed[i] = (
                     audio[i - delay_samples] * feedback +
                     delayed[i - delay_samples] * feedback * 0.9
                 )
-
-            # slight pre-saturation
             delayed = np.tanh(delayed * 1.4)
-
             audio = (1 - wet) * audio + wet * delayed
 
             # dark reverb tail (lowpassed)
@@ -1067,6 +1112,37 @@ async def play_music(core, mood_score=0.0, action_text="", story_progress=0, res
             rev = scipy.signal.lfilter(b, a, rev)
             audio = audio + rev * 0.45
 
+            # === Additional stereo delays and long reverb for more depth ===
+            # --- Long delay layer (stereo, subtle feedback) ---
+            long_delay_ms = 1200
+            long_feedback = 0.46
+            long_wet = 0.22
+            long_delay_samples = int(sample_rate * long_delay_ms / 1000)
+            long_delayed = np.zeros_like(audio)
+            for i in range(long_delay_samples, len(audio)):
+                long_delayed[i] = (
+                    audio[i - long_delay_samples] * long_feedback +
+                    long_delayed[i - long_delay_samples] * long_feedback * 0.5
+                )
+            # No feedback loop, just a single pass, subtle
+            audio = (1 - long_wet) * audio + long_wet * long_delayed
+
+            # --- Subtle reverb tail (longer, soft mix) ---
+            tail_reverb_ms = 500
+            tail_reverb_samples = int(sample_rate * tail_reverb_ms / 1000)
+            tail_rev = np.zeros_like(audio)
+            tail_rev_mix = 0.13
+            # Use a simple comb filter for a lush tail
+            for i in range(tail_reverb_samples, len(audio)):
+                tail_rev[i] = (
+                    audio[i - tail_reverb_samples] * 0.33 +
+                    tail_rev[i - tail_reverb_samples] * 0.22
+                )
+            # Gentle lowpass for the reverb tail
+            b2, a2 = scipy.signal.butter(2, 400 / (sample_rate * 0.5), btype="low")
+            tail_rev = scipy.signal.lfilter(b2, a2, tail_rev)
+            audio = audio * (1 - tail_rev_mix) + tail_rev * tail_rev_mix
+
             # loudness compensation
             audio = audio / (np.max(np.abs(audio)) + 1e-8)
             audio *= 0.95
@@ -1075,8 +1151,89 @@ async def play_music(core, mood_score=0.0, action_text="", story_progress=0, res
             tail = np.zeros(int(sample_rate * 0.6), dtype=np.float32)
             audio = np.concatenate([audio, tail])
 
+            # === POST-EFFECT: Subtle stereo reverb/delay layer (non-destructive, blended) ===
+            # --- Parameters for subtle post reverb/delay ---
+            post_reverb_ms = 70
+            post_reverb_decay = 0.18
+            post_delay_ms = 22
+            post_delay_wet = 0.11
+            # Prepare stereo signal
+            n_samples = len(audio)
+            # Mono to stereo
+            stereo = np.zeros((n_samples, 2), dtype=np.float32)
+            stereo[:, 0] = audio
+            stereo[:, 1] = audio
+            # Subtle stereo reverb (Schroeder-like, no feedback loop)
+            reverb_samples = int(sample_rate * post_reverb_ms / 1000)
+            if reverb_samples > 2 and reverb_samples < n_samples:
+                for ch in [0, 1]:
+                    for i in range(reverb_samples, n_samples):
+                        stereo[i, ch] += stereo[i - reverb_samples, ch] * post_reverb_decay
+            # Subtle stereo delay (L/R offset)
+            delay_samples = int(sample_rate * post_delay_ms / 1000)
+            if delay_samples > 2 and delay_samples < n_samples:
+                # Left delayed slightly, right delayed slightly more
+                left_delayed = np.zeros(n_samples, dtype=np.float32)
+                right_delayed = np.zeros(n_samples, dtype=np.float32)
+                # Left: delay_samples, Right: delay_samples*2
+                for i in range(delay_samples, n_samples):
+                    left_delayed[i] = stereo[i - delay_samples, 0]
+                for i in range(delay_samples * 2, n_samples):
+                    right_delayed[i] = stereo[i - delay_samples * 2, 1]
+                # Blend with original
+                stereo[:, 0] = (1 - post_delay_wet) * stereo[:, 0] + post_delay_wet * left_delayed
+                stereo[:, 1] = (1 - post_delay_wet) * stereo[:, 1] + post_delay_wet * right_delayed
+            # Final normalization (just in case)
+            max_val = np.max(np.abs(stereo)) + 1e-8
+            stereo = stereo / max_val * 0.99
+
+            # === Add "cave delay + hall reverb" layer (stereo, non-looping, for entire segment) ===
+            # Parameters:
+            cave_delay_sec = 1.8
+            cave_delay_feedback = 0.32  # subtle
+            cave_delay_wet = 0.19
+            hall_reverb_sec = 1.2
+            hall_reverb_mix = 0.15  # soft blend
+            hall_reverb_lowpass = 2200  # Hz
+            n_samples_cave = stereo.shape[0]
+            # --- Cave delay (long, subtle feedback, stereo) ---
+            cave_delay_samples = int(sample_rate * cave_delay_sec)
+            cave_stereo = np.zeros_like(stereo)
+            # Copy original as base
+            cave_stereo[:, 0] = stereo[:, 0]
+            cave_stereo[:, 1] = stereo[:, 1]
+            # Apply delay (non-looping, subtle feedback)
+            for ch in [0, 1]:
+                for i in range(cave_delay_samples, n_samples_cave):
+                    cave_stereo[i, ch] += (
+                        stereo[i - cave_delay_samples, ch] * cave_delay_feedback
+                    )
+            # Blend with original
+            cave_stereo = (1 - cave_delay_wet) * stereo + cave_delay_wet * cave_stereo
+
+            # --- Hall reverb (long tail, lowpass, soft blend) ---
+            hall_reverb_samples = int(sample_rate * hall_reverb_sec)
+            hall_rev = np.zeros_like(stereo)
+            # Simple feedback comb for each channel
+            for ch in [0, 1]:
+                for i in range(hall_reverb_samples, n_samples_cave):
+                    hall_rev[i, ch] = (
+                        cave_stereo[i - hall_reverb_samples, ch] * 0.45 +
+                        hall_rev[i - hall_reverb_samples, ch] * 0.29
+                    )
+            # Lowpass filter for "hall" smoothness
+            b_hall, a_hall = scipy.signal.butter(2, hall_reverb_lowpass / (sample_rate * 0.5), btype="low")
+            for ch in [0, 1]:
+                hall_rev[:, ch] = scipy.signal.lfilter(b_hall, a_hall, hall_rev[:, ch])
+            # Blend softly into the mix
+            cave_stereo = cave_stereo * (1 - hall_reverb_mix) + hall_rev * hall_reverb_mix
+
+            # Final normalization after mixing
+            cave_stereo = cave_stereo / (np.max(np.abs(cave_stereo)) + 1e-8) * 0.99
+
+            # Use cave_stereo as the final stereo signal
             with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as fp:
-                scipy.io.wavfile.write(fp.name, sample_rate, audio.astype(np.float32))
+                scipy.io.wavfile.write(fp.name, sample_rate, cave_stereo.astype(np.float32))
                 segment_path = fp.name
 
             sound = pygame.mixer.Sound(segment_path)
@@ -1102,8 +1259,30 @@ async def play_music(core, mood_score=0.0, action_text="", story_progress=0, res
                 if i >= reverb_samples_pause:
                     pause_audio[i] += pause_audio[i - reverb_samples_pause] * 0.25
 
+            # Also apply same stereo post-effect to pause
+            pause_stereo = np.zeros((len(pause_audio), 2), dtype=np.float32)
+            pause_stereo[:, 0] = pause_audio
+            pause_stereo[:, 1] = pause_audio
+            # Subtle reverb to pause
+            if reverb_samples > 2 and reverb_samples < len(pause_audio):
+                for ch in [0, 1]:
+                    for i in range(reverb_samples, len(pause_audio)):
+                        pause_stereo[i, ch] += pause_stereo[i - reverb_samples, ch] * post_reverb_decay
+            # Subtle stereo delay to pause
+            if delay_samples > 2 and delay_samples < len(pause_audio):
+                left_delayed = np.zeros(len(pause_audio), dtype=np.float32)
+                right_delayed = np.zeros(len(pause_audio), dtype=np.float32)
+                for i in range(delay_samples, len(pause_audio)):
+                    left_delayed[i] = pause_stereo[i - delay_samples, 0]
+                for i in range(delay_samples * 2, len(pause_audio)):
+                    right_delayed[i] = pause_stereo[i - delay_samples * 2, 1]
+                pause_stereo[:, 0] = (1 - post_delay_wet) * pause_stereo[:, 0] + post_delay_wet * left_delayed
+                pause_stereo[:, 1] = (1 - post_delay_wet) * pause_stereo[:, 1] + post_delay_wet * right_delayed
+            # Normalize
+            pause_stereo = pause_stereo / (np.max(np.abs(pause_stereo)) + 1e-8) * 0.99
+
             with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as fp:
-                scipy.io.wavfile.write(fp.name, sample_rate, pause_audio.astype(np.float32))
+                scipy.io.wavfile.write(fp.name, sample_rate, pause_stereo.astype(np.float32))
                 pause_path = fp.name
 
             pause_sound = pygame.mixer.Sound(pause_path)
@@ -1203,22 +1382,43 @@ async def generate_image(core, prompt, mood_score=0.0):
         init_image = Image.fromarray(arr)
 
     core.is_streaming = True
+    core.prediction_horizon = 3
+    core.predicted_frames = []
     # stream-diffusion feel: keep last latents alive visually
     core.last_stream_surface = core.morphing_new_image
 
-    # Mini NN net
+    # Mini NN net (frame prediction version)
     class MiniUNet(nn.Module):
+        """
+        Corrected MiniUNet for morphing: predicts delta, confidence, and temporal smoothness.
+        Residual skip fixed to avoid channel mismatch.
+        """
         def __init__(self):
             super().__init__()
-            self.conv1 = nn.Conv2d(3, 8, 3, padding=1)
-            self.conv2 = nn.Conv2d(8, 3, 3, padding=1)
-        def forward(self, x):
-            x = x.contiguous()
-            x = torch.relu(self.conv1(x))
-            x = torch.sigmoid(self.conv2(x))
-            return x
+            self.conv1 = nn.Conv2d(6, 64, 3, padding=1)
+            self.conv2 = nn.Conv2d(64, 64, 3, padding=1)
+            self.down_proj = nn.Conv2d(64, 32, 1)  # project r2 -> 32 channels
+            self.conv3 = nn.Conv2d(32, 32, 3, padding=1)  # input matches projected r2
+            self.conv4 = nn.Conv2d(32, 4, 3, padding=1)  # RGB delta + confidence + temporal
+            self.relu = nn.ReLU(inplace=True)
+
+        def forward(self, prev, curr):
+            x = torch.cat([prev, curr], dim=1)  # 6 channels
+            r1 = self.relu(self.conv1(x))       # 64 channels
+            r2 = self.relu(self.conv2(r1) + r1)  # 64 channels
+            r2_proj = self.down_proj(r2)        # 32 channels
+            r3 = self.relu(self.conv3(r2_proj) + r2_proj)  # 32 channels
+            out = self.conv4(r3)
+            delta = torch.tanh(out[:, :3])
+            confidence = torch.sigmoid(out[:, 3:4])
+            temporal_weight = torch.sigmoid(out[:, 3:4])
+            return delta, confidence, temporal_weight
 
     mini_nn = MiniUNet().to(device)
+
+    # Явная инициализация последних кадров после mini_nn
+    last_real_frame = None
+    last_pred_frame = None
 
     def apply_micro_shader(surface):
         arr = pygame.surfarray.array3d(surface).astype(np.float32)
@@ -1273,10 +1473,10 @@ async def generate_image(core, prompt, mood_score=0.0):
         return pygame.surfarray.make_surface(blended)
 
     def callback(step, timestep, latents):
+        nonlocal last_pred_frame, last_real_frame
         try:
             start_step = 8   
             full_step = 14  
-
 
             with torch.no_grad():
                 latents_ = latents / 0.18215
@@ -1287,30 +1487,76 @@ async def generate_image(core, prompt, mood_score=0.0):
 
             surface = pygame.surfarray.make_surface(np.transpose(image,(1,0,2)))
 
-        
-            surface = apply_micro_shader(surface)
+            arr = pygame.surfarray.array3d(surface).astype(np.float32)
+            arr = np.transpose(arr, (1,0,2))
+            curr = torch.tensor(arr/255.0).permute(2,0,1).unsqueeze(0).float().to(device)
 
-            # --- Fractal noise shader (new micro effect) ---
+            if last_real_frame is not None:
+                prev = last_real_frame
+                with torch.no_grad():
+                    delta, conf, _ = mini_nn(prev, curr)
+
+                pred = prev + delta
+                conf_map = conf[0,0].detach().cpu().numpy()
+                conf_val = float(conf_map.mean())
+
+                pred_np = pred[0].permute(1,2,0).cpu().numpy()
+                pred_np = np.clip(pred_np, 0.0, 1.0) * 255.0
+                pred_np = pred_np.astype(np.uint8)
+
+                surface = pygame.surfarray.make_surface(np.transpose(pred_np,(1,0,2)))
+
+                # confidence-mask: где не уверены — усиливаем вклад SD
+                if conf_val < 0.55:
+                    # --- NumPy-based blending instead of pygame.transform.lerp ---
+                    base = core.morphing_new_image if core.morphing_new_image is not None else surface
+
+                    base_arr = pygame.surfarray.array3d(base).astype(np.float32)
+                    surf_arr = pygame.surfarray.array3d(surface).astype(np.float32)
+
+                    blend = base_arr * (1.0 - conf_val) + surf_arr * conf_val
+                    blend = np.clip(blend, 0, 255).astype(np.uint8)
+
+                    surface = pygame.surfarray.make_surface(blend)
+                # --- end replacement ---
+
+                last_pred_frame = pred
+            else:
+                last_pred_frame = curr
+
+            last_real_frame = curr
+
+            surface = apply_micro_shader(surface)
             surface = apply_fractal_noise_shader(surface, intensity=0.6, scale=0.06, octaves=4)
 
-            # alpha 
-            alpha = min(max((step - start_step) / (full_step - start_step) * 0.25, 0.0), 0.25)
+            # --- Morphing with proper fade-out of old image ---
+            progress = min(max((step - start_step) / (full_step - start_step), 0.0), 1.0)
 
-            if core.morphing_new_image and alpha > 0.0:
-                base_arr = np.transpose(pygame.surfarray.array3d(core.morphing_new_image),(1,0,2))
-                new_arr = np.transpose(pygame.surfarray.array3d(surface),(1,0,2))
+            if core.morphing_new_image is not None:
+                old_arr = pygame.surfarray.array3d(core.morphing_new_image).astype(np.float32)
+                new_arr = pygame.surfarray.array3d(surface).astype(np.float32)
 
-                # low-res prediction mini-NN
-                lr = cv2.resize(new_arr,(new_arr.shape[1]//4,new_arr.shape[0]//4))
-                lr_tensor = torch.tensor(lr/255.0).permute(2,0,1).unsqueeze(0).float().to(device)
-                with torch.no_grad():
-                    pred = mini_nn(lr_tensor)[0].permute(1,2,0).cpu().numpy()*255.0
-                pred = cv2.resize(pred,(new_arr.shape[1],new_arr.shape[0]))
-                new_arr = np.clip((1-alpha)*new_arr + alpha*pred,new_arr.min(),new_arr.max()).astype(np.uint8)
+                # старое исчезает, новое проявляется
+                blend = old_arr * (1.0 - progress) + new_arr * progress
+                blend = np.clip(blend, 0, 255).astype(np.uint8)
 
-                blended = cv2.addWeighted(base_arr.astype(np.float32),1.0-alpha,new_arr.astype(np.float32),alpha,0.0)
-                blended = np.transpose(blended,(1,0,2))
-                surface = pygame.surfarray.make_surface(blended)
+                surface = pygame.surfarray.make_surface(blend)
+
+            # не удаляем morphing_new_image, сохраняем для дальнейшего морфинга
+            # прогресс завершён, но держим изображение
+            pass
+
+            # --- 2-step prediction ahead (without SD) ---
+            with torch.no_grad():
+                if last_real_frame is not None:
+                    temp = curr.clone()
+                    for _ in range(2):
+                        # Always feed RGB prev + curr
+                        delta, conf, _ = mini_nn(last_real_frame, temp)
+                        temp = temp + delta
+                    core.predicted_frames.append(temp)
+                    if len(core.predicted_frames) > core.prediction_horizon:
+                        core.predicted_frames.pop(0)
 
             core.last_stream_surface = surface
 
@@ -1325,10 +1571,10 @@ async def generate_image(core, prompt, mood_score=0.0):
                     prompt=image_prompt,
                     init_image=core.morphing_new_image or init_image,
                     strength=0.4,
-                    num_inference_steps=16,
+                    num_inference_steps=14,
                     guidance_scale=6.6,
                     callback=callback,
-                    callback_steps=1
+                    callback_steps=2
                 ).images[0]
 
             image = await asyncio.get_event_loop().run_in_executor(executor, _gen)
@@ -1341,27 +1587,17 @@ async def generate_image(core, prompt, mood_score=0.0):
             core.add_image_to_buffer(surface)
 
             # === Online learning MiniUNet step ===
-            # Prepare a small image tensor from surface
-            arr = pygame.surfarray.array3d(surface).astype(np.float32)
-            arr = np.transpose(arr, (1, 0, 2))
-            # Downscale for speed
-            arr_lr = cv2.resize(arr, (arr.shape[1] // 4, arr.shape[0] // 4))
-            input_tensor = torch.tensor(arr_lr / 255.0).permute(2, 0, 1).contiguous().unsqueeze(0).float().to(device)
-            target_tensor = input_tensor.clone()
-            # Add small noise for denoising task
-            noisy_tensor = input_tensor + 0.04 * torch.randn_like(input_tensor)
-            noisy_tensor = torch.clamp(noisy_tensor, 0.0, 1.0)
-            # Setup optimizer and loss
-            criterion = nn.MSELoss()
-            optimizer = torch.optim.Adam(mini_nn.parameters(), lr=1e-4)
-            mini_nn.train()
-            for _ in range(14):  # epochs
+            if last_pred_frame is not None and last_real_frame is not None:
+                optimizer = torch.optim.Adam(mini_nn.parameters(), lr=1e-4)
+                criterion = nn.MSELoss()
+                mini_nn.train()
                 optimizer.zero_grad()
-                output = mini_nn(noisy_tensor)
-                loss = criterion(output, target_tensor)
+                delta, conf, _ = mini_nn(last_pred_frame.detach(), last_real_frame.detach())
+                target_delta = last_real_frame - last_pred_frame
+                loss = criterion(delta, target_delta) + 0.1 * torch.mean((conf - 1.0) ** 2)
                 loss.backward()
                 optimizer.step()
-            mini_nn.eval()
+                mini_nn.eval()
             # === End online learning step ===
 
             return surface
@@ -1875,45 +2111,87 @@ async def main():
             screen.blit(scaled_img, (img_x, img_y))
 
         margin = SCREEN_WIDTH * 0.05
-        text_y_start = SCREEN_HEIGHT * 0.6
         line_spacing = font_size * 1.2
-
+        # Layout: main text at top, input at bottom, world/status below
+        # Speaker at top
         speaker_surface = font.render(f"{speaker}:", True, (200, 200, 255))
-        screen.blit(speaker_surface, (margin, text_y_start))
+        screen.blit(speaker_surface, (margin, TEXT_TOP_OFFSET))
 
-        render_bold_wrapped(displayed_text, font, (255, 255, 255), screen, margin, text_y_start + line_spacing, line_spacing)
+        # Main dialogue text (wrapped), just below speaker, with margin from top
+        max_width = SCREEN_WIDTH - 100
+        render_bold_wrapped(
+            displayed_text,
+            font,
+            (255, 255, 255),
+            screen,
+            margin,
+            TEXT_TOP_OFFSET + line_spacing,
+            line_spacing,
+            max_width=max_width
+        )
 
-        txt_surface = font.render(">> " + input_text, True, (255, 255, 255))
-        screen.blit(txt_surface, (margin, text_y_start + line_spacing * 3))
+        # Input field at bottom, above margin
+        input_y = SCREEN_HEIGHT - INPUT_BOTTOM_MARGIN
 
+        # (Removed pulsing highlight for input area)
+
+        # Render input text
+        input_prefix = ">> "
+        txt_surface = font.render(input_prefix + input_text, True, (255, 255, 255))
+        screen.blit(txt_surface, (margin, input_y))
+
+        # --- Last character highlight (pulse/cube) ---
+        if input_text:
+            last_char = input_text[-1]
+            prefix_w = font.size(input_prefix)[0]
+            text_body = input_text[:-1]
+            text_body_w = font.size(text_body)[0] if text_body else 0
+            # X coordinate for last char
+            last_char_x = margin + prefix_w + text_body_w
+            last_char_y = input_y
+            # Render full text in white
+            # (already rendered above; now render last char separately)
+            char_surf = font.render(last_char, True, (255, 255, 255))
+            char_w, char_h = char_surf.get_size()
+            # Color pulse for last char
+            blink = ((pygame.time.get_ticks() // 300) % 2) == 0
+            pulse_color = (255, 33, 100) if blink else (255, 80, 188)
+            # Draw translucent cube behind last char
+            char_bg = pygame.Surface((char_w + 6, char_h + 6), pygame.SRCALPHA)
+            char_bg.fill((255, 255, 255, 120))
+            screen.blit(char_bg, (last_char_x - 3, last_char_y - 3))
+            # Draw last char in pulsing color
+            char_colored = font.render(last_char, True, pulse_color)
+            screen.blit(char_colored, (last_char_x, last_char_y))
+
+        # --- World status block positioning consta
+        # nts ---
+        STATUS_BASE_Y = int(SCREEN_HEIGHT * 0.0001)
+        STATUS_LINE_SPACING = int(SCREEN_HEIGHT * 0.042)
+
+        # World status lines
+        status_lines = []
         world_status = f"Collapse: {core.world_state['collapse']:.1f} | Instability: {core.world_state['instability']:.1f} | Locks: {len(core.world_state['locks'])}"
-        world_surface = font.render(world_status, True, (255, 150, 150) if core.world_state["collapse"] > 0.5 else (200, 200, 255))
-        screen.blit(world_surface, (margin, text_y_start + line_spacing * 4))
-        
+        status_lines.append((world_status, (255, 150, 150) if core.world_state["collapse"] > 0.5 else (200, 200, 255)))
         status = f"World: {core.current_world} | Nodes: {core.network_nodes} | Resonance: {core.resonance:.2f} | Titan: {core.titan_relation:.2f}"
-        status_surface = font.render(status, True, (200, 200, 255))
-        screen.blit(status_surface, (margin, text_y_start + line_spacing * 5))
-
+        status_lines.append((status, (200, 200, 255)))
         if core.conflicts:
-            conflict_surface = font.render(f"Conflicts: {', '.join(core.conflicts)}", True, (255, 100, 100))
-            screen.blit(conflict_surface, (margin, text_y_start + line_spacing * 6))
+            status_lines.append((f"Conflicts: {', '.join(core.conflicts)}", (255, 100, 100)))
         if core.allies:
-            ally_surface = font.render(f"Allies: {', '.join(core.allies)}", True, (100, 255, 100))
-            screen.blit(ally_surface, (SCREEN_WIDTH * 0.5, text_y_start + line_spacing * 6))
-
+            status_lines.append((f"Allies: {', '.join(core.allies)}", (100, 255, 100)))
         if dialogue_score is not None:
-            score_surface = font.render(f"Dialogue Score: {dialogue_score:.1f}", True, (255, 255, 100))
-            screen.blit(score_surface, (margin, text_y_start + line_spacing * 7))
+            status_lines.append((f"Dialogue Score: {dialogue_score:.1f}", (255, 255, 100)))
+
+        for i, (text, color) in enumerate(status_lines):
+            y = STATUS_BASE_Y + i * STATUS_LINE_SPACING
+            screen.blit(font.render(text, True, color), (margin, y))
 
         # === Fade-in mask ===
         if len(core.current_dialogue) > 0 and core.text_animation_index < len(core.current_dialogue):
-
-            max_width = SCREEN_WIDTH - int(SCREEN_WIDTH * 0.1)
-
+            # Use the same max_width as above
             words = core.current_dialogue.split(" ")
             lines = []
             current_line = ""
-
             for word in words:
                 test_line = current_line + (" " if current_line else "") + word
                 if font.size(test_line)[0] <= max_width:
@@ -1921,19 +2199,16 @@ async def main():
                 else:
                     lines.append(current_line)
                     current_line = word
-
             if current_line:
                 lines.append(current_line)
-
             chars_counted = 0
             current_line = ""
-            line_start_y = text_y_start
+            line_start_y = TEXT_TOP_OFFSET
             line_chars_index = 0
-
             for line_idx, line in enumerate(lines):
                 if core.text_animation_index <= chars_counted + len(line):
                     current_line = line
-                    line_start_y = text_y_start + line_spacing * (line_idx + 1)
+                    line_start_y = TEXT_TOP_OFFSET + line_spacing * (line_idx + 1)
                     line_chars_index = core.text_animation_index - chars_counted
                     break
                 chars_counted += len(line)
