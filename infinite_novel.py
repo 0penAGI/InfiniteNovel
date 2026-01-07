@@ -1,3 +1,13 @@
+def sanitize_tts(text):
+    return (
+        text
+        .replace("’", "'")
+        .replace("“", '"')
+        .replace("”", '"')
+        .replace("–", "-")
+        .replace("—", "-")
+        .replace("…", "...")
+    )
 #infinite_novel.py - https://github.com/0penAGI/InfiniteNovel/tree/main 
 # open-source by 0penAGI tested on MacBook M3 Pro 18gb 
 import pygame
@@ -92,9 +102,11 @@ except Exception as e:
     logging.error(f"Ошибка загрузки sentiment-analyzer: {e}")
     sentiment_analyzer = None
 
-def render_bold_wrapped(text, font, color, screen, x, y, line_spacing, max_width=None):
+
+def render_bold_wrapped(text, font, color, screen, x, y, line_spacing, max_width=None, mask=None):
     """
     Рендер текста с *bold* выделением, перенос по ширине экрана.
+    Можно применять маску (Surface с alpha) к тексту.
     """
     pattern = r"\*(.*?)\*"
     parts = re.split(pattern, text)
@@ -103,6 +115,10 @@ def render_bold_wrapped(text, font, color, screen, x, y, line_spacing, max_width
     current_y = y
     if max_width is None:
         max_width = screen.get_width() - x * 2
+
+    # рисуем на отдельный surface, чтобы потом маску наложить
+    text_surface = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
+    
     for part in parts:
         if not part:
             bold = not bold
@@ -112,13 +128,18 @@ def render_bold_wrapped(text, font, color, screen, x, y, line_spacing, max_width
         for word in words:
             word_surface = f.render(word + " ", True, color)
             word_width = word_surface.get_width()
-            # Если не помещается по ширине, переносим на новую строку
             if current_x + word_width > x + max_width:
                 current_x = x
                 current_y += line_spacing
-            screen.blit(word_surface, (current_x, current_y))
+            text_surface.blit(word_surface, (current_x, current_y))
             current_x += word_width
         bold = not bold
+
+    if mask:
+        text_surface.blit(mask, (0,0), special_flags=pygame.BLEND_RGBA_MULT)
+
+    screen.blit(text_surface, (0,0))
+
 
 # Quantum like neural network
 class QuantumNeuralNetwork(nn.Module):
@@ -242,7 +263,31 @@ def gemma3_generate(prompt: str, history=None, model="gemma3:1b", on_token=None)
         return full_text.strip()
 
 
+#
 # ---  StoryDirector with memory Gemma3 and user profile ---
+class NarrativeFlowPredictor:
+    """
+    Tracks story states and generates plot suggestions based on history.
+    """
+    def __init__(self):
+        self.story_states = []
+        self.plot_suggestions = []
+
+    def update(self, state, intent):
+        self.story_states.append((state, intent))
+        if len(self.story_states) > 50:
+            self.story_states.pop(0)
+
+    def predict(self):
+        # Very simple logic: suggest a plot twist if same arc repeats > 3 times
+        if len(self.story_states) < 4:
+            return None
+        last_arc = self.story_states[-1][0]
+        if all(s[0] == last_arc for s in self.story_states[-4:]):
+            return f"Consider a plot twist or escalation in the '{last_arc}' arc."
+        return None
+
+
 class StoryDirector:
     def __init__(self):
         self.arc = "awakening"
@@ -253,6 +298,8 @@ class StoryDirector:
         self.last_visual_context = {}
         self.conversation_memory = []  # last conversation
         self.player_profile = []       # 30-50 replies for forming «Pulse»
+        # Add NarrativeFlowPredictor for story state tracking and plot suggestions
+        self.narrative_flow = NarrativeFlowPredictor()
 
     def advance_arc(self, impact, mood, threads=None, visual=None):
         thread_boost = sum(min(v, 1.0) for v in threads.values()) * 0.1 if threads else 0.0
@@ -275,6 +322,8 @@ class StoryDirector:
                 self.thread_influence[k] += v * 0.1
                 if self.thread_influence[k] > 1.0:
                     self.thread_influence[k] = 1.0
+        # Update narrative flow history
+        self.update_story_history(self.arc, intent)
 
     def respond(self, intent, mood, resonance, core):
         self.player_profile.append({"role": "player", "content": intent})
@@ -319,6 +368,23 @@ class StoryDirector:
 
         return text.strip()
 
+    # --- NarrativeFlowPredictor integration ---
+    def update_story_history(self, state, intent):
+        """
+        Update the narrative flow predictor with the current story state and intent.
+        """
+        if hasattr(self, "narrative_flow") and self.narrative_flow:
+            self.narrative_flow.update(state, intent)
+
+    def predict_narrative_flow(self):
+        """
+        Use the narrative flow predictor to suggest the next plot development.
+        Returns a suggestion string or None.
+        """
+        if hasattr(self, "narrative_flow") and self.narrative_flow:
+            return self.narrative_flow.predict()
+        return None
+
 
 
 # Core
@@ -350,7 +416,7 @@ class PulseCore:
         self.displayed_dialogue = ""
         self.text_animation_index = 0
         self.last_char_time = 0
-        self.char_delay = 50  # мс на символ
+        self.char_delay = 80  
         self.image_buffer = []
         self.max_buffer_size = 5
         self.feedback_opacity = 0.2
@@ -371,6 +437,13 @@ class PulseCore:
         self.stream_fade_speed = 0.08
         self.stream_last_surface = None
 
+        # === STYLE MEMORY CAPTURE ===
+        self.capture_dir = "dataset"
+        self.session_id = int(time.time())
+        self.last_input_time = pygame.time.get_ticks()
+        self.idle_capture_ms = 4000
+        os.makedirs(f"{self.capture_dir}/session_{self.session_id}", exist_ok=True)
+
         self.music_state = {
             "mode": "drone",
             "mutation": 0.0,
@@ -385,6 +458,70 @@ class PulseCore:
             "titan_timer": 120
         }
         self.pain_level = 0.0  # Subjectivity pain of system
+
+    def capture_frame(self, surface):
+        if surface is None:
+            return
+
+        ts = pygame.time.get_ticks()
+        base = f"{self.capture_dir}/session_{self.session_id}/img_{ts}"
+
+        # save image
+        pygame.image.save(surface, base + ".png")
+
+        # --- auto-caption from threads ---
+        threads = self.memory.get("threads", {})
+        sorted_threads = sorted(
+            [(k, v) for k, v in threads.items() if v >= 0.25],
+            key=lambda x: x[1],
+            reverse=True
+        )[:6]
+
+        thread_tokens = []
+        for name, weight in sorted_threads:
+            if name in ["pulse", "signal", "network"]:
+                thread_tokens.append("pulse network")
+            elif name in ["fracture", "break", "collapse"]:
+                thread_tokens.append("fractured structure")
+            elif name in ["void", "silence", "emptiness"]:
+                thread_tokens.append("void atmosphere")
+            else:
+                thread_tokens.append(name.replace("_", " "))
+
+        # mood modifier
+        mood = float(self.memory.get("mood_score", 0.0))
+        if mood < -0.3:
+            mood_tag = "dark, tense"
+        elif mood > 0.3:
+            mood_tag = "luminous, calm"
+        else:
+            mood_tag = "neutral, abstract"
+
+        arc = getattr(self.story, "arc", None)
+        arc_tag = f"{arc} arc" if arc else "unknown arc"
+
+        caption = (
+            "abstract sci-fi scene, "
+            + ", ".join(thread_tokens)
+            + f", {arc_tag}, {mood_tag}, hypnotic, neural dream"
+        )
+
+        # save caption
+        with open(base + ".txt", "w") as f:
+            f.write(caption)
+
+        # save meta
+        meta = {
+            "arc": arc,
+            "mood": mood,
+            "resonance": float(self.resonance),
+            "threads": threads,
+            "time": ts
+        }
+
+        with open(base + ".json", "w") as f:
+            import json
+            json.dump(meta, f, indent=2)
 
     def evaluate_quality(self, data, data_type):
         if data_type == "image":
@@ -577,7 +714,7 @@ class PulseCore:
             return None
         try:
             image = await asyncio.get_event_loop().run_in_executor(executor, lambda: pipe(
-                prompt, num_inference_steps=10, guidance_scale=5.0
+                prompt, num_inference_steps=14, guidance_scale=5.5
             ).images[0])
             img_array = np.array(image).astype(np.float32)
             img_array = np.clip(img_array, 0, 255)
@@ -1043,7 +1180,7 @@ async def play_intro_video(core, path="intro.mp4"):
 
 
     if 'channel' in locals() and channel.get_busy():
-        fade_duration = 2.0  # секунды
+        fade_duration = 2.0  
         steps = 20
         original_volume = channel.get_volume()
         for i in range(steps):
@@ -1057,7 +1194,7 @@ async def generate_image(core, prompt, mood_score=0.0):
         return None, 0.0
 
     if core.image_task and not core.image_task.done():
-        return None, 0.0  # уже генерируется
+        return None, 0.0  
 
     last_event = core.world_state.get("last_event", "")
     arc = getattr(core.story, "arc", "awakening")
@@ -1080,6 +1217,7 @@ async def generate_image(core, prompt, mood_score=0.0):
             self.conv1 = nn.Conv2d(3, 8, 3, padding=1)
             self.conv2 = nn.Conv2d(8, 3, 3, padding=1)
         def forward(self, x):
+            x = x.contiguous()
             x = torch.relu(self.conv1(x))
             x = torch.sigmoid(self.conv2(x))
             return x
@@ -1090,7 +1228,7 @@ async def generate_image(core, prompt, mood_score=0.0):
         arr = pygame.surfarray.array3d(surface).astype(np.float32)
         arr = np.transpose(arr, (1,0,2))
         h, w, _ = arr.shape
-        t = pygame.time.get_ticks() / 500.0
+        t = pygame.time.get_ticks() / 555.0
         warp_x = np.sin(np.linspace(0, np.pi*4, w) + t) * 2
         warp_y = np.cos(np.linspace(0, np.pi*4, h) + t) * 2
         map_x, map_y = np.meshgrid(np.arange(w)+warp_x, np.arange(h)+warp_y)
@@ -1099,11 +1237,50 @@ async def generate_image(core, prompt, mood_score=0.0):
         displaced = np.transpose(displaced,(1,0,2))
         return pygame.surfarray.make_surface(displaced)
 
+    # --- Fractal Noise Shader ---
+    def apply_fractal_noise_shader(surface, intensity=1.0, scale=0.1, octaves=4):
+        """
+        Applies fractal noise-based pixel displacement and blends with original.
+        Time-dependent, using pygame.time.get_ticks().
+        """
+        arr = pygame.surfarray.array3d(surface).astype(np.float32)
+        arr = np.transpose(arr, (1,0,2))
+        h, w, c = arr.shape
+        t = pygame.time.get_ticks() / 666.0
+        # Generate base grid
+        y, x = np.mgrid[0:h, 0:w]
+        # Fractal noise function using summed sin/cos
+        def fractal_noise(xx, yy, t, scale, octaves):
+            n = np.zeros_like(xx, dtype=np.float32)
+            freq = 1.0
+            amp = 1.0
+            total_amp = 0.0
+            for i in range(octaves):
+                n += (np.sin(xx * scale * freq + t * freq * 0.7 + i * 10.7) +
+                      np.cos(yy * scale * freq + t * freq * 1.2 + i * 5.3)) * 0.5 * amp
+                total_amp += amp
+                freq *= 2.0
+                amp *= 0.5
+            return n / (total_amp if total_amp != 0 else 1.0)
+        # Displacement fields
+        noise_x = fractal_noise(x, y, t, scale, octaves)
+        noise_y = fractal_noise(y, x, t + 31.4, scale, octaves)
+        # Scale noise for displacement
+        disp_strength = 4.0 * intensity
+        map_x = (x + noise_x * disp_strength).astype(np.float32)
+        map_y = (y + noise_y * disp_strength).astype(np.float32)
+        displaced = cv2.remap(arr, map_x, map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+        # Blend with original
+        alpha = np.clip(intensity, 0.0, 1.0)
+        blended = np.clip(arr * (1.0 - alpha) + displaced * alpha, 0, 255).astype(np.uint8)
+        blended = np.transpose(blended, (1,0,2))
+        return pygame.surfarray.make_surface(blended)
+
     def callback(step, timestep, latents):
         try:
-            start_step = 1   # включаем морфинг почти сразу
-            full_step = 8
-            # не выходим полностью, даём ранний слабый морфинг
+            start_step = 8   
+            full_step = 14  
+
 
             with torch.no_grad():
                 latents_ = latents / 0.18215
@@ -1114,13 +1291,16 @@ async def generate_image(core, prompt, mood_score=0.0):
 
             surface = pygame.surfarray.make_surface(np.transpose(image,(1,0,2)))
 
-            # микро-шейдер поверх
+        
             surface = apply_micro_shader(surface)
 
-            # alpha растягивается от step 1 до 8, чуть ослаблен ранний вклад
-            alpha = min(max((step-start_step)/(full_step-start_step)*0.25, 0.05), 0.25)
+            # --- Fractal noise shader (new micro effect) ---
+            surface = apply_fractal_noise_shader(surface, intensity=0.6, scale=0.06, octaves=4)
 
-            if core.morphing_new_image and alpha>0.0:
+            # alpha 
+            alpha = min(max((step - start_step) / (full_step - start_step) * 0.25, 0.0), 0.25)
+
+            if core.morphing_new_image and alpha > 0.0:
                 base_arr = np.transpose(pygame.surfarray.array3d(core.morphing_new_image),(1,0,2))
                 new_arr = np.transpose(pygame.surfarray.array3d(surface),(1,0,2))
 
@@ -1148,9 +1328,9 @@ async def generate_image(core, prompt, mood_score=0.0):
                 return pipe(
                     prompt=image_prompt,
                     init_image=core.morphing_new_image or init_image,
-                    strength=0.38,
-                    num_inference_steps=10,
-                    guidance_scale=6.0,
+                    strength=0.4,
+                    num_inference_steps=16,
+                    guidance_scale=6.6,
                     callback=callback,
                     callback_steps=1
                 ).images[0]
@@ -1170,7 +1350,7 @@ async def generate_image(core, prompt, mood_score=0.0):
             arr = np.transpose(arr, (1, 0, 2))
             # Downscale for speed
             arr_lr = cv2.resize(arr, (arr.shape[1] // 4, arr.shape[0] // 4))
-            input_tensor = torch.tensor(arr_lr / 255.0).permute(2, 0, 1).unsqueeze(0).float().to(device)
+            input_tensor = torch.tensor(arr_lr / 255.0).permute(2, 0, 1).contiguous().unsqueeze(0).float().to(device)
             target_tensor = input_tensor.clone()
             # Add small noise for denoising task
             noisy_tensor = input_tensor + 0.04 * torch.randn_like(input_tensor)
@@ -1179,7 +1359,7 @@ async def generate_image(core, prompt, mood_score=0.0):
             criterion = nn.MSELoss()
             optimizer = torch.optim.Adam(mini_nn.parameters(), lr=1e-4)
             mini_nn.train()
-            for _ in range(1):  # one epoch
+            for _ in range(14):  # epochs
                 optimizer.zero_grad()
                 output = mini_nn(noisy_tensor)
                 loss = criterion(output, target_tensor)
@@ -1255,6 +1435,10 @@ async def speak(core, text):
 
         return 0.8
 
+    except asyncio.CancelledError:
+        # корректная отмена (timeout / новая реплика)
+        return 0.0
+
     except Exception as e:
         logging.error(f"TTS error: {e}")
         return 0.0
@@ -1266,7 +1450,6 @@ def interpret_action(action_text, core):
     score = 0.0
     action_impact = 0.0
     focus = None
-
 
     if sentiment_analyzer:
         try:
@@ -1304,7 +1487,6 @@ def interpret_action(action_text, core):
             if "visual" in data:
                 visual_modifiers[data["visual"]] += data.get("weight", 0.0)
 
-
     visual = getattr(core, "visual_features", {})
     if visual:
         action_impact += (visual.get("contrast", 0) - 0.3) * 0.15
@@ -1313,11 +1495,93 @@ def interpret_action(action_text, core):
         if "fracture" in action_text or "edges" in visual_modifiers:
             action_impact += (visual.get("edges", 0) - 0.2) * 0.2
 
-
     action_impact *= 1 + core.pain_level * 0.5
 
     action_impact = min(max(action_impact * (total_weight / 1.0 if total_weight > 0 else 1), -0.5), 0.5)
     return sentiment, score, action_impact, focus
+
+# --- New: interpret_and_generate_signals ---
+def interpret_and_generate_signals(action_text, core):
+    """
+    Interpret user action and generate control signals for visuals/music.
+    Returns: sentiment, score, action_impact, focus, signals (dict)
+    """
+    sentiment, score, action_impact, focus = interpret_action(action_text, core)
+    # Generate signals for visuals/music
+    signals = {
+        "brightness": 0.0,
+        "contrast": 0.0,
+        "edges": 0.0,
+        "music_mood": 0.0,
+        "music_energy": 0.0,
+        "displacement_intensity": 0.0,
+        "fractal_noise_intensity": 0.0,
+        "thread_strength_factor": 1.0,
+    }
+    # Map keywords to signals
+    text = action_text.lower()
+    # Thread-visual-music mapping
+    thread_map = {
+        "titan": {"displacement": 0.6, "music_energy": 0.7, "music_mood": -0.4},
+        "pulse": {"displacement": 0.3, "music_energy": 0.5, "music_mood": 0.3},
+        "fracture": {"displacement": 0.7, "fractal_noise": 0.8, "music_energy": 0.6, "music_mood": -0.2},
+        "network": {"displacement": 0.2, "fractal_noise": 0.3, "music_energy": 0.4, "music_mood": 0.1},
+        "colossi": {"displacement": 0.4, "music_energy": 0.6, "music_mood": 0.0},
+        "light": {"brightness": 0.25, "music_mood": 0.2},
+        "dark": {"contrast": 0.25, "music_mood": -0.2},
+    }
+    # Accumulate thread strengths
+    thread_strength = {}
+    if hasattr(core, "memory") and "threads" in core.memory:
+        for k, v in core.memory["threads"].items():
+            if k in thread_map:
+                thread_strength[k] = v
+    # Find top thread(s)
+    top_threads = sorted(thread_strength.items(), key=lambda x: -x[1])[:2]
+    scaling_factor = 1.0
+    for tk, tv in top_threads:
+        tmap = thread_map.get(tk, {})
+        for sig, val in tmap.items():
+            if sig == "displacement":
+                signals["displacement_intensity"] += val * tv
+            elif sig == "fractal_noise":
+                signals["fractal_noise_intensity"] += val * tv
+            elif sig == "music_energy":
+                signals["music_energy"] += val * tv
+            elif sig == "music_mood":
+                signals["music_mood"] += val * tv
+            elif sig == "brightness":
+                signals["brightness"] += val * tv
+            elif sig == "contrast":
+                signals["contrast"] += val * tv
+    # Text-based cues (keep legacy)
+    if "light" in text or "pulse" in text:
+        signals["brightness"] += 0.2
+    if "dark" in text:
+        signals["contrast"] += 0.2
+    if "fracture" in text or "edge" in text:
+        signals["edges"] += 0.2
+    # Music signals
+    if sentiment == "POSITIVE":
+        signals["music_mood"] += 0.5 + score * 0.5
+    elif sentiment == "NEGATIVE":
+        signals["music_mood"] += -0.5 + score * 0.5
+    # Energy: based on action impact and keywords
+    signals["music_energy"] += min(max(abs(action_impact), 0.0), 1.0)
+    if "fight" in text or "destroy" in text:
+        signals["music_energy"] += 0.2
+    if "explore" in text or "create" in text:
+        signals["music_energy"] += 0.1
+    # Thread-based scaling: stronger threads amplify effects
+    max_thread_strength = max([tv for _, tv in top_threads], default=0.0)
+    scaling_factor = 1.0 + min(max_thread_strength, 2.0) * 0.7
+    signals["thread_strength_factor"] = scaling_factor
+    # Clamp all values
+    for k in ["brightness", "contrast", "edges", "displacement_intensity", "fractal_noise_intensity"]:
+        signals[k] = min(max(signals[k], 0.0), 2.0)
+    signals["music_energy"] = min(max(signals["music_energy"], 0.0), 2.0)
+    signals["music_mood"] = min(max(signals["music_mood"], -2.0), 2.0)
+    return sentiment, score, action_impact, focus, signals
 
 def generate_event(core, action_text, action_impact, focus):
     # === WORLD ACTS WITHOUT PLAYER ===
@@ -1344,6 +1608,8 @@ def generate_event(core, action_text, action_impact, focus):
         )
 
 
+    # --- Dynamic visual/audio synchronization based on key threads ---
+    # (See main loop for actual modulation; here, just story logic.)
     core.story.advance_arc(
         action_impact,
         core.memory["mood_score"],
@@ -1448,9 +1714,22 @@ async def main():
     input_text = ""
     dialogue_score = None
 
+    # === TTL for image display ===
+    last_image_time = pygame.time.get_ticks()
+    IMAGE_TTL = 1200  # ms
+    morph_finished = True
+
     running = True
     while running:
         current_time = pygame.time.get_ticks()
+        # === AUTO CAPTURE ON IDLE OR HIGH RESONANCE ===
+        if (
+            core.resonance > 0.75 or
+            current_time - core.last_input_time > core.idle_capture_ms
+        ):
+            if core.morphing_new_image is not None:
+                core.capture_frame(core.morphing_new_image)
+                core.last_input_time = current_time
         improved_pulsating_background(screen, core.memory["mood_score"], generating)
 
         for event in pygame.event.get():
@@ -1462,10 +1741,36 @@ async def main():
                     pygame.display.toggle_fullscreen()
 
                 elif event.key == pygame.K_RETURN and input_text.strip() and not generating:
+                    core.last_input_time = pygame.time.get_ticks()
                     generating = True
 
-                    sentiment, score, action_impact, focus = interpret_action(input_text, core)
+                    sentiment, score, action_impact, focus, signals = interpret_and_generate_signals(input_text, core)
                     core.grow_network(action_impact)
+                    # --- Dynamic visual/music synchronization ---
+                    # Visuals
+                    if hasattr(core, "visual_features"):
+                        vf = core.visual_features
+                        # Thread-based scaling
+                        thread_factor = signals.get("thread_strength_factor", 1.0)
+                        # Clamp to safe range
+                        vf["brightness"] = min(max(vf.get("brightness", 0.0) + signals.get("brightness", 0.0) * thread_factor, 0.0), 1.0)
+                        vf["contrast"] = min(max(vf.get("contrast", 0.0) + signals.get("contrast", 0.0) * thread_factor, 0.0), 1.0)
+                        vf["edges"] = min(max(vf.get("edges", 0.0) + signals.get("edges", 0.0) * thread_factor, 0.0), 1.0)
+                    # Music
+                    if hasattr(core, "music_state"):
+                        ms = core.music_state
+                        thread_factor = signals.get("thread_strength_factor", 1.0)
+                        ms["mood"] = max(min(signals.get("music_mood", 0.0) * thread_factor, 1.0), -1.0)
+                        ms["energy"] = min(max(signals.get("music_energy", 0.0) * thread_factor, 0.0), 1.0)
+                    # Visual displacement/fractal noise (for shaders)
+                    if hasattr(core, "displacement_strength"):
+                        disp_base = 10.0
+                        disp_amt = signals.get("displacement_intensity", 0.0) * signals.get("thread_strength_factor", 1.0)
+                        # Clamp and blend with base
+                        core.displacement_strength = min(max(disp_base + disp_amt * 10.0, 2.0), 32.0)
+                    if hasattr(core, "fractal_noise_intensity"):
+                        # Optionally, set a core.fractal_noise_intensity if used by shaders
+                        core.fractal_noise_intensity = min(max(signals.get("fractal_noise_intensity", 0.0) * signals.get("thread_strength_factor", 1.0), 0.0), 2.0)
 
                     # === HARD FAIL STATE ===
                     if core.world_state["collapse"] >= 1.0:
@@ -1525,14 +1830,14 @@ async def main():
 
                     core.record_event(input_text, action_impact, predicted_sentiment)
 
-
-                    tts_text = dialogue.replace("*", "")
+                    tts_text = sanitize_tts(dialogue.replace("*", ""))
                     asyncio.create_task(speak(core, tts_text))
                     text_quality = 0.8
 
                     _, image_quality = await generate_image(
                         core, image_prompt, core.memory["mood_score"]
                     )
+                    morph_finished = False
                     audio_quality = 0.8
 
                     core.self_program(image_quality, audio_quality, text_quality)
@@ -1558,14 +1863,19 @@ async def main():
             img = core.apply_morphing(current_time)
             if img is not None:
                 current_image = img
+                image_surface = current_image
+                last_image_time = current_time
+            else:
+                # морфинг завершён — старое изображение больше не показываем
+                morph_finished = True
             current_image = improved_displacement(current_image, core.displacement_strength)
             current_image = core.apply_feedback_loop(current_image)
             current_image = core.apply_glow(current_image)
             current_image = improved_sharpen(current_image, strength=0.6)
-        if current_image:
-            image_surface = current_image
-        else:
+        # --- TTL check for image_surface ---
+        if morph_finished and current_time - last_image_time > IMAGE_TTL:
             current_image = None
+            image_surface = None
 
         if current_image:
             img_width = SCREEN_WIDTH - int(SCREEN_WIDTH * 0.1)
@@ -1608,37 +1918,36 @@ async def main():
 
         # === Fade-in mask с градиентом только для текущей строки ===
         if len(core.current_dialogue) > 0 and core.text_animation_index < len(core.current_dialogue):
-            # Разбиваем текст на строки
-            lines = textwrap.wrap(core.current_dialogue, width=100)  # примерно как в render_bold_wrapped
+
+            max_width = SCREEN_WIDTH - int(SCREEN_WIDTH * 0.1)
+
+            words = core.current_dialogue.split(" ")
+            lines = []
+            current_line = ""
+
+            for word in words:
+                test_line = current_line + (" " if current_line else "") + word
+                if font.size(test_line)[0] <= max_width:
+                    current_line = test_line
+                else:
+                    lines.append(current_line)
+                    current_line = word
+
+            if current_line:
+                lines.append(current_line)
+
             chars_counted = 0
+            current_line = ""
+            line_start_y = text_y_start
+            line_chars_index = 0
+
             for line_idx, line in enumerate(lines):
                 if core.text_animation_index <= chars_counted + len(line):
                     current_line = line
-                    line_start_y = text_y_start + line_spacing * (line_idx + 1)  # +1 чтобы под спикером
+                    line_start_y = text_y_start + line_spacing * (line_idx + 1)
                     line_chars_index = core.text_animation_index - chars_counted
                     break
                 chars_counted += len(line)
-
-            progress = line_chars_index / max(1, len(current_line))
-            mask_width = int(progress * (SCREEN_WIDTH * 0.9))
-            gradient_width = 40
-
-            # маска строго на текущую строку
-            mask = pygame.Surface((SCREEN_WIDTH, line_spacing), pygame.SRCALPHA)
-            mask.fill((255, 255, 255, 0))
-            if mask_width > gradient_width:
-                pygame.draw.rect(mask, (255,255,255,255), (0, 0, mask_width - gradient_width, line_spacing))
-            for i in range(gradient_width):
-                alpha = int(255 * (1 - i / gradient_width))
-                pygame.draw.rect(mask, (255,255,255,alpha), (mask_width - gradient_width + i, 0, 1, line_spacing))
-
-            # render текущую строку
-            text_surface = pygame.Surface((SCREEN_WIDTH, line_spacing), pygame.SRCALPHA)
-            render_bold_wrapped(current_line, font, (255,255,255), text_surface, margin, 0, line_spacing)
-
-            # apply mask
-            text_surface.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-            screen.blit(text_surface, (0, line_start_y))
 
         pygame.display.flip()
         clock.tick(30)
