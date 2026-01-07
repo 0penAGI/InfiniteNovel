@@ -180,34 +180,34 @@ Threads **decay slowly** — your past actions haunt the present.
 │                 (Lo-Fi AI Orchestration)                    │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌─────────────────┐  │
-│  │ Story        │  │ Quantum      │  │ Visual Effects  │  │
-│  │ Director     │◄─┤ Memory       │◄─┤ Engine          │  │
-│  │              │  │              │  │                 │  │
-│  │ • Arc mgmt   │  │ • State pred │  │ • Displacement  │  │
-│  │ • Profiling  │  │ • Visual ctx │  │ • Morphing      │  │
-│  │ • Threading  │  │ • Markov sim │  │ • Feedback loop │  │
-│  └──────┬───────┘  └──────┬───────┘  └────────┬────────┘  │
-│         │                 │                   │            │
-├─────────┴─────────────────┴───────────────────┴────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌─────────────────┐    │
+│  │ Story        │  │ Quantum      │  │ Visual Effects  │    │
+│  │ Director     │◄─┤ Memory       │◄─┤ Engine          │    │
+│  │              │  │              │  │                 │    │
+│  │ • Arc mgmt   │  │ • State pred │  │ • Displacement  │    │
+│  │ • Profiling  │  │ • Visual ctx │  │ • Morphing      │    │
+│  │ • Threading  │  │ • Markov sim │  │ • Feedback loop │    │
+│  └──────┬───────┘  └──────┬───────┘  └────────┬────────┘    │
+│         │                 │                   │             │
+├─────────┴─────────────────┴───────────────────┴─────────-───┤
 │              Multi-Modal Generation Layer                   │
 │                                                             │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐ │
-│  │ Gemma3   │  │ SD 1.5   │  │ Tacotron │  │ Procedural│ │
-│  │ 1B       │  │ Stream   │  │ TTS      │  │ Music Gen │ │
-│  │          │  │          │  │          │  │           │ │
-│  │ • 500msg │  │ • 14step │  │ • Dub FX │  │ • Granular│ │
-│  │   memory │  │ • Morph  │  │ • Delay  │  │ • OTT     │ │
-│  │ • Stream │  │ • Shader │  │          │  │ • Reverb  │ │
-│  └──────────┘  └──────────┘  └──────────┘  └───────────┘ │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐    │
+│  │ Gemma3   │  │ SD 1.5   │  │ Tacotron │  │ Procedural│    │
+│  │ 1B       │  │ Stream   │  │ TTS      │  │ Music Gen │    │
+│  │          │  │          │  │          │  │           │    │
+│  │ • 500msg │  │ • 14step │  │ • Dub FX │  │ • Granular│    │
+│  │   memory │  │ • Morph  │  │ • Delay  │  │ • OTT     │    │
+│  │ • Stream │  │ • Shader │  │          │  │ • Reverb  │    │
+│  └──────────┘  └──────────┘  └──────────┘  └───────────┘    │
 │                                                             │
 ├─────────────────────────────────────────────────────────────┤
 │              World Simulation & Failure State               │
 │                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  Collapse: 0.0 → 1.0  │  Titan Timer  │  Locks     │   │
-│  │  Instability tracking │  Autonomous   │  Arc-based │   │
-│  └─────────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  Collapse: 0.0 → 1.0  │  Titan Timer  │  Locks      │    │
+│  │  Instability tracking │  Autonomous   │  Arc-based  │    │
+│  └─────────────────────────────────────────────────────┘    │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
