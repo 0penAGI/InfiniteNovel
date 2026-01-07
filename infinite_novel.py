@@ -41,7 +41,6 @@ import moviepy.editor as mp
 
 
 
-logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Initial Pygame
@@ -53,7 +52,7 @@ ASPECT_RATIO = 3.51
 SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = int(SCREEN_WIDTH / ASPECT_RATIO)
 
-# Chech resolution
+# Check resolution
 display_info = pygame.display.Info()
 max_width = display_info.current_w
 if max_width < SCREEN_WIDTH:
@@ -97,7 +96,11 @@ except Exception as e:
 
 # Mood analysis
 try:
-    sentiment_analyzer = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english", device=device if device != "mps" else -1)
+    sentiment_analyzer = pipeline(
+        "sentiment-analysis",
+        model="distilbert-base-uncased-finetuned-sst-2-english",
+        device=0 if device == "cuda" else -1
+    )
 except Exception as e:
     logging.error(f"Ошибка загрузки sentiment-analyzer: {e}")
     sentiment_analyzer = None
@@ -119,10 +122,10 @@ def render_bold_wrapped(text, font, color, screen, x, y, line_spacing, max_width
     # рисуем на отдельный surface, чтобы потом маску наложить
     text_surface = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
     
-    for part in parts:
-        if not part:
-            bold = not bold
+    for i, part in enumerate(parts):
+        if part == "":
             continue
+        bold = (i % 2 == 1)
         f = pygame.font.SysFont("arial", font.get_height(), bold=bold)
         words = part.split(" ")
         for word in words:
@@ -133,7 +136,6 @@ def render_bold_wrapped(text, font, color, screen, x, y, line_spacing, max_width
                 current_y += line_spacing
             text_surface.blit(word_surface, (current_x, current_y))
             current_x += word_width
-        bold = not bold
 
     if mask:
         text_surface.blit(mask, (0,0), special_flags=pygame.BLEND_RGBA_MULT)
@@ -1008,10 +1010,6 @@ def generate_music_frequencies(
     return signal.astype(np.float32)
 
 async def play_music(core, mood_score=0.0, action_text="", story_progress=0, resonance=0.5, titan_relation=0.0):
-    """
-    Асинхронный бесконечный музыкальный генератор с паузами, дилеем и ревером.
-    WAV удаляются сразу после проигрывания.
-    """
     try:
         sample_rate = 44100
         channel = pygame.mixer.Channel(0)
@@ -1114,7 +1112,7 @@ async def play_music(core, mood_score=0.0, action_text="", story_progress=0, res
             os.unlink(pause_path)
 
     except Exception as e:
-        logging.error(f"Ошибка воспроизведения музыки: {e}")
+        logging.error(f"Music Error: {e}")
         return 0.0
 
 
@@ -1126,10 +1124,7 @@ _intro_video_cache = {
 }
 
 async def play_intro_video(core, path="intro.mp4"):
-    """
-    Асинхронно проигрывает видео с аудио на экране.
-    Не блокирует event loop.
-    """
+
     global _intro_video_cache
 
 
@@ -1164,7 +1159,7 @@ async def play_intro_video(core, path="intro.mp4"):
             channel = pygame.mixer.Channel(2)
             channel.play(sound)
     except Exception as e:
-        logging.error(f"Ошибка воспроизведения аудио интро: {e}")
+        logging.error(f"Intro Error: {e}")
 
 
     idx = 0
@@ -1436,7 +1431,6 @@ async def speak(core, text):
         return 0.8
 
     except asyncio.CancelledError:
-        # корректная отмена (timeout / новая реплика)
         return 0.0
 
     except Exception as e:
@@ -1594,10 +1588,6 @@ def generate_event(core, action_text, action_impact, focus):
             "The Megatitan acts first. A sector is erased.",
             "cosmic titan destroying a sector of a neural universe, brutal, cinematic"
         )
-    """
-    Улучшенная сюжетно-ориентированная генерация:
-    действие пользователя + нити + визуальный контекст -> сюжетный ответ -> конкретное событие мира.
-    """
     # === ACTION LOCKS ===
     if getattr(core.story, "arc", None) == "rupture" and "create" in action_text:
         core.world_state["locks"].add("creation")
@@ -1606,7 +1596,6 @@ def generate_event(core, action_text, action_impact, focus):
             "Creation is no longer possible. This path is sealed.",
             "collapsed void, broken light structures, no hope"
         )
-
 
     # --- Dynamic visual/audio synchronization based on key threads ---
     # (See main loop for actual modulation; here, just story logic.)
@@ -1853,7 +1842,7 @@ async def main():
                     input_text += event.unicode
 
         displayed_text = core.animate_text(current_time)
-        current_image = image_surface  # держим последний валидный кадр
+        current_image = image_surface 
 
         # --- Streamed image: если есть last_stream_surface, показать его поверх image_surface ---
         if core.last_stream_surface is not None:
@@ -1866,7 +1855,6 @@ async def main():
                 image_surface = current_image
                 last_image_time = current_time
             else:
-                # морфинг завершён — старое изображение больше не показываем
                 morph_finished = True
             current_image = improved_displacement(current_image, core.displacement_strength)
             current_image = core.apply_feedback_loop(current_image)
@@ -1916,7 +1904,7 @@ async def main():
             score_surface = font.render(f"Dialogue Score: {dialogue_score:.1f}", True, (255, 255, 100))
             screen.blit(score_surface, (margin, text_y_start + line_spacing * 7))
 
-        # === Fade-in mask с градиентом только для текущей строки ===
+        # === Fade-in mask ===
         if len(core.current_dialogue) > 0 and core.text_animation_index < len(core.current_dialogue):
 
             max_width = SCREEN_WIDTH - int(SCREEN_WIDTH * 0.1)
