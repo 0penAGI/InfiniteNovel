@@ -1,13 +1,4 @@
-def sanitize_tts(text):
-    return (
-        text
-        .replace("’", "'")
-        .replace("“", '"')
-        .replace("”", '"')
-        .replace("–", "-")
-        .replace("—", "-")
-        .replace("…", "...")
-    )
+
 #infinite_novel.py - https://github.com/0penAGI/InfiniteNovel/tree/main 
 # open-source by 0penAGI tested on MacBook M3 Pro 18gb 
 import pygame
@@ -105,6 +96,16 @@ except Exception as e:
     logging.error(f"Ошибка загрузки sentiment-analyzer: {e}")
     sentiment_analyzer = None
 
+def sanitize_tts(text):
+    return (
+        text
+        .replace("’", "'")
+        .replace("“", '"')
+        .replace("”", '"')
+        .replace("–", "-")
+        .replace("—", "-")
+        .replace("…", "...")
+    )
 
 def render_bold_wrapped(text, font, color, screen, x, y, line_spacing, max_width=None, mask=None):
     """
