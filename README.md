@@ -445,7 +445,6 @@ We welcome contributions! Priority areas:
 
 **MIT License** — use freely, commercially or not.
 
-See `LICENSE` file for full text.
 
 ---
 
