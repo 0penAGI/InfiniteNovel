@@ -218,25 +218,28 @@ class QuantumMemory:
             probs /= probs.sum()
         return np.random.choice(self.states, p=probs)
 
-# --- Gemma3:4b streaming generation through Ollama ---
 def gemma3_generate(prompt: str, history=None, model="gemma3:1b", on_token=None):
     """
-    Stream Ollama Gemma.
-    on_token(token: str) 
+    Stream Ollama Gemma with randomness to prevent repetition.
+    on_token(token: str)
     """
     import json
+    import random
     url = "http://localhost:11434/api/chat"
     payload = {
         "model": model,
         "stream": True,
+        "temperature": 0.55,  
+        "top_p": 0.85,
         "messages": []
     }
+
+    # Truncate history to last 100 messages to provide more context and reduce repetition
     if history:
-        payload["messages"].extend(history)
+        payload["messages"].extend(list(history)[-100:])  # use last 100 messages
     payload["messages"].append({"role": "user", "content": prompt})
 
     full_text = ""
-
     try:
         with requests.post(url, json=payload, stream=True, timeout=60) as response:
             response.raise_for_status()
@@ -250,6 +253,9 @@ def gemma3_generate(prompt: str, history=None, model="gemma3:1b", on_token=None)
 
                 if "message" in data and "content" in data["message"]:
                     token = data["message"]["content"]
+                    # small random perturbation: sometimes skip or modify token
+                    if random.random() < 0.02:
+                        token = token[::-1]  # tiny mutation
                     full_text += token
                     if on_token:
                         on_token(token)
@@ -297,8 +303,8 @@ class StoryDirector:
         self.history = []
         self.thread_influence = defaultdict(float)
         self.last_visual_context = {}
-        self.conversation_memory = []  # last conversation
-        self.player_profile = []       # 30-50 replies for forming «Pulse»
+        self.conversation_memory = collections.deque(maxlen=500)  # persist longer conversation
+        self.player_profile = collections.deque(maxlen=500)       # persist more player actions
         # Add NarrativeFlowPredictor for story state tracking and plot suggestions
         self.narrative_flow = NarrativeFlowPredictor()
 
@@ -328,8 +334,6 @@ class StoryDirector:
 
     def respond(self, intent, mood, resonance, core):
         self.player_profile.append({"role": "player", "content": intent})
-        if len(self.player_profile) > 50:
-            self.player_profile = self.player_profile[-50:]
 
         top_threads = sorted(core.memory["threads"].items(), key=lambda x: -x[1])[:3]
         threads_str = ", ".join(f"{k}({v:.1f})" for k, v in top_threads) if top_threads else "none"
@@ -350,8 +354,6 @@ class StoryDirector:
         )
 
         self.conversation_memory.append({"role": "user", "content": context})
-        if len(self.conversation_memory) > 50:
-            self.conversation_memory = self.conversation_memory[-50:]
 
         streamed_text = ""
 
@@ -362,9 +364,20 @@ class StoryDirector:
 
         text = gemma3_generate(
             context,
-            history=self.conversation_memory + self.player_profile,
+            history=list(self.conversation_memory) + list(self.player_profile),
             on_token=_on_token
         )
+        # Introduce randomness and variation to the assistant's response
+        if random.random() < 0.25:  # 25% chance to add a narrative twist
+            twists = [
+                "An unexpected anomaly appears in the network.",
+                "A hidden force shifts the balance of power.",
+                "A fleeting echo whispers secrets of the void.",
+                "The very structure of reality trembles subtly."
+            ]
+            text += " " + random.choice(twists)
+
+        # Append with variation
         self.conversation_memory.append({"role": "assistant", "content": text})
 
         return text.strip()
