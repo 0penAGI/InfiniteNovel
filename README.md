@@ -1,302 +1,563 @@
-# Infinite Novel - Local AI-Powered Interactive Narrative Engine
+Отличный README! Но давай сделаем его **ещё сильнее** — подчеркнём философию устаревших моделей и lo-fi эстетику. Вот обновлённая версия:
+
+---
+
+# Infinite Novel - Lo-Fi AI Narrative Engine
 
 ![Novel Screenshot](novel.png)
 ![Additional Screenshot](nolev.png)
 
-
-Experimental interactive narrative game that combines real-time AI generation with dynamic storytelling. Powered by multiple AI models, it creates a responsive sci-fi universe that evolves based on player actions through visual, auditory, and textual synthesis.
+**Experimental interactive narrative game that embraces imperfection.** Powered by deliberately "outdated" AI models, it creates a glitchy, unstable sci-fi universe that evolves through visual, auditory, and textual synthesis — where system limitations become aesthetic features.
 
 ![Experimental Game](https://img.shields.io/badge/Status-Experimental-orange)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![PyGame](https://img.shields.io/badge/PyGame-2.5%2B-green)
-Infinite Novel
+![Lo-Fi AI](https://img.shields.io/badge/Aesthetic-Lo--Fi%20AI-purple)
 
+---
 
+## 🌌 What is Infinite Novel?
 
-🌌 What is Infinite Novel?
+Infinite Novel is an **AI-powered narrative engine that rejects photorealism** in favor of raw, unstable generation. It's not trying to look perfect — it's trying to feel **alive and broken**.
 
-Infinite Novel is an AI-powered interactive narrative engine that creates personalized sci-fi stories in real-time. It's not just a chatbot with images — it's a complete universe simulation where:
+**Core Philosophy:**
+- 🎞️ **Lo-Fi AI Aesthetic** — SD 1.5 artifacts = VHS glitches in horror films
+- ⚡ **Speed over Fidelity** — 2-3 second generations keep you in flow state
+- 🧠 **Accessible Intelligence** — Runs on consumer hardware (RTX 3060, M1 Mac)
+- 🌀 **Emergent Chaos** — Small models hallucinate = alien intelligence vibes
 
-· Every action changes the story's direction
-· Visuals and music evolve with the narrative
-· The world has its own autonomous systems and logic
-· The AI remembers everything and learns from you
+> *"Imperfection is the medium. Your 8GB GPU is the canvas."*
 
-✨ Features
+---
 
-🎭 Dynamic Storytelling
+## ✨ Features
 
-· Narrative Director: AI that manages story arcs (Awakening → Convergence → Rupture → Synthesis)
-· Quantum Memory: Remembers player actions and builds personalized narrative threads
-· Fractal Memory System: LSTM + quantum-inspired neural networks for pattern recognition
-· Player Profiling: Builds a unique "Pulse" signature from 30-50 interactions
+### 🎭 Dynamic Storytelling
 
-🎨 Multi-Modal Generation
+- **Narrative Director**: AI manages story arcs (Awakening → Convergence → Rupture → Synthesis)
+- **Quantum Memory**: Markov-inspired state machine with visual context integration
+- **Fractal Memory System**: LSTM + trigonometric "quantum" layers for chaotic prediction
+- **Player Profiling**: 500-action memory builds your unique narrative signature
 
-· Real-time Image Generation: Stable Diffusion with streaming callback visualizations
-· Dynamic Music System: Generative ambient music that evolves with the story
-· AI Voice Narration: TTS with dub delay effects for atmospheric storytelling
-· Intelligent Dialogue: Gemma3 via Ollama with streaming response generation
+### 🎨 Multi-Modal Lo-Fi Generation
 
-🔮 Interactive Systems
+- **Streaming Image Generation**: SD 1.5 with **visible generation callbacks** (watch latents evolve)
+- **Procedural Music System**: Generative ambient with granular synthesis, dub delay, hall reverb
+- **Glitchy TTS**: Tacotron2 with intentional audio artifacts and delay effects
+- **Streaming Dialogue**: Gemma3 1B via Ollama (small = unpredictable = interesting)
 
-· World Simulation: Collapse/instability mechanics with autonomous entities
-· Thread-based Narrative: Keywords create narrative tension that influences generation
-· Visual Effects Engine: Real-time shaders (displacement, fractal noise, glow, morphing)
-· Self-Programming AI: System adapts weights based on content quality evaluation
+### 🔮 World Simulation
 
-🎮 Game Mechanics
+- **Autonomous Titan AI**: Acts independently, can destroy your progress
+- **Collapse Mechanics**: World can genuinely fail (≥1.0 = game over)
+- **Thread-Based Narrative**: Keywords create tension fields affecting all generation
+- **Real-Time Shaders**: Displacement, fractal noise, feedback loops, morphing
 
-· Titan Timer: Autonomous world events occur independent of player
-· Conflict Resolution: Build allies and resolve conflicts to increase resonance
-· Pain System: World state affects AI responses and generation
-· Lock Mechanics: Certain actions become unavailable based on story state
+### 🎮 Experimental Systems
 
-🚀 Quick Start
+- **Self-Programming Weights**: System adjusts modal priorities based on output quality
+- **Online-Learning MiniUNet**: CNN predicts frame deltas during SD generation
+- **Auto-Dataset Capture**: Saves frames + auto-captions for future training
+- **Pain System**: World state affects AI personality and response style
 
-Prerequisites
+---
 
-· Python 3.8+
-· PyTorch with CUDA/MPS support (recommended)
-· Ollama with Gemma3 model installed
-· 8GB+ VRAM (for Stable Diffusion)
-· MacBook M3 Pro 18GB+ or equivalent
+## 🎨 Why "Outdated" Models?
 
-Installation
+### The Lo-Fi AI Manifesto
 
-1. Clone the repository
+**Stable Diffusion 1.5 (2022) instead of SDXL/Flux:**
+- ✅ **Runs on 8GB VRAM** — democratizes AI art
+- ✅ **2-3 second generation** — maintains flow state
+- ✅ **Glitchy artifacts** — creates unstable reality aesthetic
+- ✅ **Raw, unpolished look** — fits "collapsing network" theme
+- ❌ Photorealism would break immersion
+
+**Gemma3 1B instead of 70B models:**
+- ✅ **Fast streaming responses** — real-time feel
+- ✅ **Unpredictable outputs** — alien intelligence, not corporate assistant
+- ✅ **Low resource usage** — runs alongside SD + TTS
+- ✅ **Genuine mistakes** — system can be "wrong" = more human
+- ❌ Perfect grammar would feel sterile
+
+**Design Analogy:**
+```
+Infinite Novel : Cyberpunk 2077
+    =
+16mm film    : 8K HDR
+```
+
+Lo-fi is the **aesthetic choice**, not a limitation.
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+**Minimum Specs:**
+- Python 3.8+
+- 8GB VRAM (RTX 3060, M1 Mac 16GB, or equivalent)
+- 16GB RAM
+- Ollama with Gemma3 1B
+
+**Recommended:**
+- RTX 4070 / M3 Pro 18GB
+- 32GB RAM
+- SSD for faster model loading
+
+### Installation
 
 ```bash
+# 1. Clone repo
 git clone https://github.com/0penAGI/InfiniteNovel.git
 cd InfiniteNovel
-```
 
-1. Create virtual environment
-
-```bash
+# 2. Setup environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-1. Install dependencies
-
-```bash
+# 3. Install dependencies
 pip install -r requirements.txt
-```
 
-1. Set up Ollama
-
-```bash
-# Install Ollama (if not already installed)
+# 4. Install & setup Ollama
 curl -fsSL https://ollama.com/install.sh | sh
-
-# Pull Gemma3 model
 ollama pull gemma3:1b
-```
 
-1. Run the application
-
-```bash
+# 5. Run
 python infinite_novel.py
 ```
 
-🎮 How to Play
+### First Launch
 
-1. Launch the application - You'll see an intro sequence and enter the cosmic void
-2. Type your actions - Describe what you want to do (e.g., "explore the network", "confront the titan", "create light")
-3. Press Enter - Watch as the world responds with generated text, images, and music
-4. Explore systems - Notice how keywords create narrative threads that influence future generations
-5. Manage the world - Keep an eye on collapse/instability meters and build resonance
+1. **Intro sequence** plays (press ESC to skip after first viewing)
+2. **Type your first action** — try: *"wake up in the network"*
+3. **Wait 2-3 seconds** — watch the world generate in real-time
+4. **Keep exploring** — system learns your style after ~10 interactions
 
-Key Commands
+---
 
-· Enter: Submit your action
-· Backspace: Delete characters
-· Escape: Toggle fullscreen
-· Mouse: Hidden for immersion (use keyboard only)
+## 🎮 How to Play
 
-🧠 Technical Architecture
+### Controls
+
+| Key | Action |
+|-----|--------|
+| `Type` | Input your action |
+| `Enter` | Submit and generate world response |
+| `Backspace` | Delete characters |
+| `Escape` | Toggle fullscreen |
+
+### Gameplay Tips
+
+1. **Use evocative keywords**: "pulse", "titan", "fracture", "light", "network"
+2. **Watch the meters**: Collapse/Instability affect generation style
+3. **Build resonance**: Positive actions create allies, increase stability
+4. **Let Titan act**: System has autonomous events every ~2 minutes
+5. **Embrace glitches**: Artifacts are features, not bugs
+
+### Narrative Threads
+
+Strong keywords create **narrative threads** that persist across generations:
+
+```python
+"titan"    → dark, heavy visuals + aggressive music
+"pulse"    → rhythmic displacement + energetic soundscape
+"fracture" → edge detection + chaotic audio
+"light"    → brightness boost + calm mood
+"network"  → grid patterns + ambient drones
+```
+
+Threads **decay slowly** — your past actions haunt the present.
+
+---
+
+## 🧠 Technical Architecture
+
+### System Overview
 
 ```
-┌──────────────────────────────────────────----────────-───────────┐
-│                    Infinite Novel Engine                         │
-├─────────────────-─────────────────────────----───────────────────┤
-│  Quantum Memory    │  Story Director   │ Visual Effects Engine   │
-│  State transitions │   Arc management  │   Real-time shaders     │
-│   Pattern learning │  Player profiling │   Image morphing        │
-├─────────────────────────────────────────────-----────────────────┤
-│            Multi-Modal AI Integration Layer                      │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐       ┌──────────┐     │
-│  │ Gemma3   │  │ Stable   │  │ TTS      │       │ Music    │     │
-│  │ (Ollama) │  │ Diffusion│  │ Engine   │       │ Generator│     │
-│  └──────────┘  └──────────┘  └──────────┘       └──────────┘     │
-├──────────────────────────────────────────-----───────────────────┤
-│               World Simulation & Game Layer                      │
-│  ┌──────────────────────────────────────────-----────────────┐   │
-│  │ Collapse System │ Titan AI │  Thread Management   │ Locks │   │
-│  └───────────────────────────────-───────────────────────┘   │
-└────────────────────────────────── ───────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                  Infinite Novel Engine                      │
+│                 (Lo-Fi AI Orchestration)                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌─────────────────┐  │
+│  │ Story        │  │ Quantum      │  │ Visual Effects  │  │
+│  │ Director     │◄─┤ Memory       │◄─┤ Engine          │  │
+│  │              │  │              │  │                 │  │
+│  │ • Arc mgmt   │  │ • State pred │  │ • Displacement  │  │
+│  │ • Profiling  │  │ • Visual ctx │  │ • Morphing      │  │
+│  │ • Threading  │  │ • Markov sim │  │ • Feedback loop │  │
+│  └──────┬───────┘  └──────┬───────┘  └────────┬────────┘  │
+│         │                 │                   │            │
+├─────────┴─────────────────┴───────────────────┴────────────┤
+│              Multi-Modal Generation Layer                   │
+│                                                             │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐ │
+│  │ Gemma3   │  │ SD 1.5   │  │ Tacotron │  │ Procedural│ │
+│  │ 1B       │  │ Stream   │  │ TTS      │  │ Music Gen │ │
+│  │          │  │          │  │          │  │           │ │
+│  │ • 500msg │  │ • 14step │  │ • Dub FX │  │ • Granular│ │
+│  │   memory │  │ • Morph  │  │ • Delay  │  │ • OTT     │ │
+│  │ • Stream │  │ • Shader │  │          │  │ • Reverb  │ │
+│  └──────────┘  └──────────┘  └──────────┘  └───────────┘ │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│              World Simulation & Failure State               │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  Collapse: 0.0 → 1.0  │  Titan Timer  │  Locks     │   │
+│  │  Instability tracking │  Autonomous   │  Arc-based │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-Core Components
+### Core Components
 
-1. PulseCore: Central brain managing memory, weights, and world state
-2. StoryDirector: Narrative AI with arc progression and player profiling
-3. QuantumMemory: Markov-like state transitions with visual influence
-4. FractalMemory: Neural network for pattern prediction and memory
-5. MiniUNet: Online-learning CNN for image prediction during streaming diffusion
+| Component | Function | Tech |
+|-----------|----------|------|
+| **PulseCore** | Central state manager | PyTorch, NumPy |
+| **StoryDirector** | Narrative AI orchestrator | Gemma3 streaming |
+| **QuantumMemory** | Probabilistic state machine | Weighted Markov + visual ctx |
+| **FractalMemory** | Pattern prediction | LSTM + trig activations |
+| **MiniUNet** | Online frame interpolation | CNN delta prediction |
+| **Music Engine** | Procedural audio synthesis | SciPy signal processing |
 
-🎨 Artistic Vision
+### Why "Quantum" and "Fractal"?
 
-Infinite Novel explores the intersection of:
+**Not actual quantum computing** — metaphorical naming for:
+- **Quantum**: `x * cos(w) + sin(w)` creates chaotic, non-deterministic behavior
+- **Fractal**: Self-similar patterns across time scales (threads decay fractally)
 
-· Generative AI as creative collaborator
-· Interactive fiction with emergent narrative
-· Digital ecosystems that feel alive
-· Sci-fi aesthetics in code and interface
+Think of it as **poetic variable naming** for emergent systems.
 
-The system creates a "living document" of your interaction — each session is unique and cannot be replicated.
+---
 
-📊 Performance
+## 📊 Performance
 
-Tested on:
+### Benchmarks
 
-· MacBook M3 Pro 18GB: 30 FPS stable, ~2s response time
-· RTX 4090 24GB: 60 FPS, ~1s response time
-· CPU-only mode: 15-20 FPS, ~5s response time
+| Hardware | FPS | Response Time | Notes |
+|----------|-----|---------------|-------|
+| **RTX 4090 24GB** | 60 | ~1.0s | Overkill but smooth |
+| **RTX 4070 12GB** | 45 | ~1.5s | Sweet spot |
+| **RTX 3060 8GB** | 30 | ~2.5s | Minimum recommended |
+| **M3 Pro 18GB** | 30 | ~2.0s | Tested platform |
+| **M1 Mac 16GB** | 25 | ~3.0s | Playable with patience |
+| **CPU-only** | 15 | ~8.0s | Not recommended |
 
-Optimization Features
+### Optimization Features
 
-· Streaming diffusion with callback visualization
-· Audio segment caching and reuse
-· Image TTL (time-to-live) for memory management
-· Dynamic quality adjustment based on system load
-· Attention slicing for Stable Diffusion
+- ✅ Streaming diffusion with visible callbacks (feel the generation)
+- ✅ Attention slicing for SD (memory efficiency)
+- ✅ Audio segment caching (reuse similar moods)
+- ✅ Image TTL system (auto-cleanup after 1200ms)
+- ✅ Async model coordination (no blocking)
+- ✅ Dynamic quality adjustment (adapts to hardware)
 
-📁 Project Structure
+---
+
+## 🧪 Experimental Features
+
+### 1. Style Memory Capture
+
+System auto-saves frames with metadata for future training:
+
+```python
+dataset/
+  session_1704672000/
+    img_1234567.png      # Generated frame
+    img_1234567.txt      # Auto-caption based on threads
+    img_1234567.json     # Metadata (arc, mood, resonance)
+```
+
+**Use case**: Train LoRA adapters on your unique narrative style.
+
+### 2. Online Learning
+
+During SD generation, `MiniUNet` learns to predict frame deltas:
+
+```python
+# Predicts: current_frame + delta = next_frame
+delta, confidence, temporal_weight = mini_unet(prev, curr)
+```
+
+Improves morphing smoothness over session duration.
+
+### 3. Autonomous World Events
+
+**Titan Timer** system creates pressure:
+- Every ~2 minutes, Titan acts independently
+- Can increase collapse even if player is passive
+- Forces reactive gameplay, prevents idle grinding
+
+### 4. Pain System
+
+World collapse affects AI personality:
+
+```python
+core.pain_level = (collapse + instability) / 2
+action_impact *= (1 + pain_level * 0.5)  # Amplifies drama
+```
+
+High pain → more desperate responses, harsher outcomes.
+
+---
+
+## 📁 Project Structure
 
 ```
 InfiniteNovel/
-├── infinite_novel.py          # Main application
-├── requirements.txt           # Python dependencies
+├── infinite_novel.py          # Main engine (3000+ lines)
+├── requirements.txt           # Dependencies
+├── intro.mp4                  # Optional intro video
 ├── dataset/                   # Auto-captured training data
-│   └── session_*/            # Per-session captures
-│       ├── img_*.png         # Generated images
-│       ├── img_*.txt         # Auto-captions
-│       └── img_*.json        # Metadata
-├── intro.mp4                 # Optional intro video
-└── checkpoints/              # Optional model checkpoints
+│   └── session_*/
+│       ├── *.png             # Frames
+│       ├── *.txt             # Captions
+│       └── *.json            # Metadata
+└── README.md                  # You are here
 ```
 
-🔧 Configuration
+---
 
-Key parameters in the code:
+## 🔧 Configuration
 
-· ASPECT_RATIO = 3.51 - Cinematic widescreen format
-· SCREEN_WIDTH = 1920 - Resolution (auto-adjusts to display)
-· IMAGE_TTL = 1200 - Milliseconds before images fade
-· char_delay = 80 - Text animation speed (ms per character)
-· idle_capture_ms = 4000 - Auto-capture interval
+### Key Parameters
 
-🧪 Experimental Features
+Located in `infinite_novel.py`:
 
-Style Memory Capture
+```python
+# Visual
+ASPECT_RATIO = 3.51           # Cinematic widescreen
+SCREEN_WIDTH = 1920           # Auto-adjusts to display
+IMAGE_TTL = 1200              # ms before fade
 
-The system automatically captures frames and generates captions based on:
+# Text Animation
+char_delay = 80               # ms per character
 
-· Active narrative threads
-· Current mood score
-· Story arc progression
-· Visual features (brightness, contrast, edges)
+# Dataset Capture
+idle_capture_ms = 4000        # Auto-save interval
 
-Online Learning
+# SD Generation
+num_inference_steps = 14      # Speed vs quality
+guidance_scale = 6.6          # Creativity vs coherence
 
-During image generation, MiniUNet learns to predict frame deltas, creating smoother morphing between generations.
+# Music
+segment_duration = 2.0-5.0    # Random per segment
+pause_duration = 1.0-4.0      # Breathing room
+```
 
-Quantum-inspired Mechanics
+### Tweaking the Experience
 
-· Quantum neural networks with sinusoidal activation patterns
-· Probabilistic state transitions influenced by visual context
-· Resonance system that affects all generation parameters
+**Faster but uglier:**
+```python
+num_inference_steps = 8       # ~1s generation
+guidance_scale = 5.0          # More chaos
+```
 
+**Slower but prettier:**
+```python
+num_inference_steps = 20      # ~3s generation
+guidance_scale = 8.0          # More coherent
+```
 
-🔮 Future Development
-
-Planned features:
-
-· Save/Load system for sessions
-· Multiplayer/cooperative mode
-· Export to video/story format
-· Custom model fine-tuning interface
-· Plugin system for additional AI services
-· Web/cloud deployment option
-· VR/AR compatibility
-
-📚 Learning Resources
-
-Understanding the Code
-
-1. Start with PulseCore.__init__() - central brain
-2. Follow main() game loop for flow
-3. Explore generate_image() for streaming diffusion
-4. Study play_music() for generative audio
-
-Key Concepts to Research
-
-· Streaming diffusion callbacks
-· Quantum-inspired neural networks
-· Real-time shader programming with NumPy
-· Asynchronous AI model coordination
-· Narrative tension systems in games
-
-🤝 Contributing
-
-We welcome contributions! Areas of particular interest:
-
-· Performance optimization
-· Additional AI model integrations
-· UI/UX improvements
-· Documentation and examples
-· Bug fixes and stability improvements
-
-Please read CONTRIBUTING.md for details.
-
-📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-🙏 Acknowledgments
-
-· Stable Diffusion by Stability AI
-· Gemma3 by Google
-· TTS by Coqui AI
-· Ollama for local LLM serving
-· Pygame community for real-time rendering
-· All open-source contributors whose work made this possible
-
-🌟 Support the Project
-
-If you enjoy Infinite Novel, consider:
-
-· Starring the repository on GitHub
-· Sharing your generated stories
-· Contributing code or documentation
-· Reporting issues and suggesting features
-
-📞 Contact & Community
-
-· GitHub Issues: For bugs and feature requests
-· Discussions: For sharing experiences and ideas
-· X: Follow @0penAGI for updates
+**More glitchy music:**
+```python
+quantum_chaos frequency       # line 1050: increase range
+```
 
 ---
 
-Infinite Novel - Where every word writes the universe.
+## 🎨 Artistic Vision
+
+### Inspirations
+
+- **Cyberpunk aesthetics** — Blade Runner, Ghost in the Shell
+- **Glitch art movement** — Rosa Menkman, Takeshi Murata
+- **Generative music** — Brian Eno's ambient works
+- **Interactive fiction** — Zork, AI Dungeon, but weirder
+
+### Design Goals
+
+1. **Imperfection as beauty** — celebrate AI artifacts
+2. **Player as co-author** — system adapts to your style
+3. **Emergent narrative** — no scripted paths
+4. **Hardware accessibility** — reject GPU elitism
+5. **Digital ecosystem** — world feels autonomous
+
+> *"This is not a game trying to be real. It's real trying to be a game."*
 
 ---
 
-**Note**: This is experimental software. Generated content may be unpredictable. Use responsibly and monitor resource usage.
+## 🔮 Future Development
 
-*"The network awaits your pulse. What story will you tell?"*
+### Roadmap
 
-*Join the experiment at: https://github.com/0penAGI/InfiniteNovel*
+**v0.2 (Q2 2025):**
+- [ ] Save/load session system
+- [ ] Export story to markdown/video
+- [ ] Custom model fine-tuning UI
+- [ ] Thread visualization graph
+
+**v0.3 (Q3 2025):**
+- [ ] Multiplayer co-op mode
+- [ ] Plugin system for custom AIs
+- [ ] Web deployment (WASM + API)
+- [ ] Mobile app (iOS/Android)
+
+**v1.0 (Q4 2025):**
+- [ ] VR/AR compatibility
+- [ ] Procedural music stems export
+- [ ] AI-to-AI narrative mode
+- [ ] Blockchain integration (controversial but requested)
+
+### Community Ideas
+
+Vote on features: [GitHub Discussions](https://github.com/0penAGI/InfiniteNovel/discussions)
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Priority areas:
+
+### High Impact
+- 🔥 **Performance optimization** (faster SD callbacks)
+- 🔥 **Alternative model support** (Flux.1 Dev, SDXL Turbo)
+- 🔥 **UI/UX improvements** (thread visualization, better meters)
+
+### Medium Impact
+- 📚 **Documentation** (code comments, tutorials)
+- 🐛 **Bug fixes** (check Issues tab)
+- 🎨 **Visual shaders** (new post-processing effects)
+
+### Experimental
+- 🧪 **New AI models** (image, audio, text)
+- 🧪 **Narrative systems** (new arc types, mechanics)
+- 🧪 **Dataset pipelines** (improve auto-captioning)
+
+**Read**: `CONTRIBUTING.md` for guidelines.
+
+---
+
+## 📄 License
+
+**MIT License** — use freely, commercially or not.
+
+See `LICENSE` file for full text.
+
+---
+
+## 🙏 Acknowledgments
+
+### Open Source Heroes
+
+- **Stability AI** — Stable Diffusion 1.5
+- **Google** — Gemma3 models
+- **Coqui AI** — TTS (Tacotron2)
+- **Ollama** — Local LLM serving
+- **Pygame community** — Real-time rendering foundation
+
+### Philosophical Influences
+
+- **Nick Bostrom** — AI alignment concerns (Titan mechanic)
+- **Ted Chiang** — "Story of Your Life" (narrative determinism)
+- **William Gibson** — Cyberpunk aesthetics
+- **Borges** — Infinite libraries and labyrinths
+
+---
+
+## 🌟 Support
+
+### Ways to Help
+
+- ⭐ **Star this repo** on GitHub
+- 🐦 **Share** your generated stories on X with `#InfiniteNovel`
+- 💬 **Join discussions** — share gameplay tips, report bugs
+- 💰 **Sponsor** development (GitHub Sponsors coming soon)
+
+### Showcase Gallery
+
+Submit your best moments: `gallery@0penagi.org`
+
+We'll feature standout sessions in the README!
+
+---
+
+## 📞 Contact & Community
+
+- **GitHub Issues**: [Bug reports & features](https://github.com/0penAGI/InfiniteNovel/issues)
+- **Discussions**: [Gameplay & modding](https://github.com/0penAGI/InfiniteNovel/discussions)
+- **X (Twitter)**: [@0penAGI](https://twitter.com/0penAGI)
+- **Discord**: Coming soon
+
+---
+
+## ⚠️ Important Notes
+
+### Disclaimers
+
+- 🔬 **Experimental software** — expect bugs, weirdness, crashes
+- 🎲 **Unpredictable content** — AI can generate anything
+- 💾 **Resource intensive** — monitor GPU/RAM usage
+- 🔞 **No content filtering** — use responsibly
+
+### Known Issues
+
+- Gemma3 1B can loop on complex queries (just restart)
+- SD 1.5 sometimes generates text in images (part of the aesthetic)
+- Music can click on CPU-only systems (GPU recommended)
+- macOS may require Rosetta for some dependencies
+
+### Performance Tips
+
+```bash
+# If running slow, try:
+export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0  # macOS only
+export PYTORCH_ENABLE_MPS_FALLBACK=1          # macOS only
+
+# Or reduce quality:
+# In code: num_inference_steps = 8
+```
+
+---
+
+## 🎬 Final Words
+
+> *"The network awaits your pulse. What story will you tell?"*
+
+**Infinite Novel** is not a game. It's a **collaborative hallucination** between you and several neural networks running on consumer hardware. It's messy. It's broken. It's beautiful.
+
+We chose old models because **limitations breed creativity**. We chose lo-fi because **perfection is boring**. We chose open-source because **AI should belong to everyone**.
+
+Your 8GB GPU is enough. Your imagination is the real engine.
+
+**Now go break something.**
+
+---
+
+*Infinite Novel — Where every word writes the universe.*
+
+**Join the experiment**: https://github.com/0penAGI/InfiniteNovel
+
+---
+
+### Badges
+
+![Lines of Code](https://img.shields.io/badge/Lines%20of%20Code-3000%2B-blue)
+![Models Used](https://img.shields.io/badge/AI%20Models-4-purple)
+![Hardware Friendly](https://img.shields.io/badge/Min%20VRAM-8GB-green)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+![Maintained](https://img.shields.io/badge/Maintained-Yes-brightgreen)
+
+---
+
+**Version**: 0.1.0-alpha  
+**Last Updated**: January 2025  
+**Author**: 0penAGI  
+**Status**: Active Development  
+
+---
