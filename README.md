@@ -42,7 +42,7 @@ Infinite Novel is an **AI-powered narrative engine that rejects photorealism** i
 - **Streaming Image Generation**: SD 1.5 with **visible generation callbacks** (watch latents evolve)
 - **Procedural Music System**: Generative ambient with granular synthesis, dub delay, hall reverb
 - **Glitchy TTS**: Tacotron2 with intentional audio artifacts and delay effects
-- **Streaming Dialogue**: Gemma3 1B via Ollama (small = unpredictable = interesting)
+- **Streaming Dialogue**: Gemma3 1B via Ollama or LM Studio (small = unpredictable = interesting)
 
 ### 🔮 World Simulation
 
@@ -97,7 +97,7 @@ Lo-fi is the **aesthetic choice**, not a limitation.
 - Python 3.8+
 - 8GB VRAM (RTX 3060, M1 Mac 16GB, or equivalent)
 - 16GB RAM
-- Ollama with Gemma3 1B
+- Ollama or LM Studio with Gemma3 1B
 
 **Recommended:**
 - RTX 4070 / M3 Pro 18GB
@@ -118,9 +118,18 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Install & setup Ollama
+# 4. Install & setup Ollama or LM Studio
+# Ollama:
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull gemma3:1b
+
+# LM Studio:
+# - Start the local server (OpenAI-compatible) at http://127.0.0.1:1234
+# - Load a model (e.g., Gemma3 1B) in LM Studio
+
+# LLM provider switch (in code):
+# - Edit infinite_novel.py and set LLM_PROVIDER to "ollama" or "lmstudio"
+# - Adjust LLM_MODEL if your LM Studio model name differs
 
 # 5. Run
 python infinite_novel.py
@@ -455,7 +464,7 @@ We welcome contributions! Priority areas:
 - **Stability AI** — Stable Diffusion 1.5
 - **Google** — Gemma3 models
 - **Coqui AI** — TTS (Tacotron2)
-- **Ollama** — Local LLM serving
+- **Ollama / LM Studio** — Local LLM serving
 - **Pygame community** — Real-time rendering foundation
 
 ### Philosophical Influences
