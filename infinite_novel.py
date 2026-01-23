@@ -27,9 +27,20 @@ import threading
 import functools
 import collections
 import time
-import moviepy.editor as mp
+try:
+    import moviepy.editor as mp
+    VideoFileClip = mp.VideoFileClip
+except ModuleNotFoundError:
+    from moviepy import VideoFileClip
+    mp = None
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# LLM configuration: set provider to "ollama" or "lmstudio".
+LLM_PROVIDER = "lmstudio"
+OLLAMA_URL = "http://localhost:11434/api/chat"
+LMSTUDIO_URL = "http://127.0.0.1:1234/v1/chat/completions"
+LLM_MODEL = "gemma3:1b"
 
 # Initial Pygame
 pygame.init()
@@ -218,25 +229,42 @@ class QuantumMemory:
             probs /= probs.sum()
         return np.random.choice(self.states, p=probs)
 
-def gemma3_generate(prompt: str, history=None, model="gemma3:1b", on_token=None):
+def gemma3_generate(prompt: str, history=None, model=LLM_MODEL, on_token=None):
     """
-    Stream Ollama Gemma with randomness to prevent repetition.
+    Stream chat completion with randomness to prevent repetition.
     on_token(token: str)
     """
     import json
     import random
-    url = "http://localhost:11434/api/chat"
+    provider = LLM_PROVIDER.lower()
+    if provider == "ollama":
+        url = OLLAMA_URL
+    elif provider == "lmstudio":
+        url = LMSTUDIO_URL
+    else:
+        raise ValueError(f"Unsupported LLM_PROVIDER: {LLM_PROVIDER}")
+
     payload = {
         "model": model,
         "stream": True,
-        "temperature": 0.55,  
+        "temperature": 0.55,
         "top_p": 0.85,
         "messages": []
     }
 
+    def _normalize_role(role: str) -> str:
+        if role in {"user", "assistant", "system", "tool"}:
+            return role
+        if role in {"player", "human"}:
+            return "user"
+        return "user"
+
     # Truncate history to last 100 messages to provide more context and reduce repetition
     if history:
-        payload["messages"].extend(list(history)[-100:])  # use last 100 messages
+        for msg in list(history)[-100:]:
+            payload["messages"].append(
+                {"role": _normalize_role(msg.get("role", "user")), "content": msg.get("content", "")}
+            )
     payload["messages"].append({"role": "user", "content": prompt})
 
     full_text = ""
@@ -246,13 +274,32 @@ def gemma3_generate(prompt: str, history=None, model="gemma3:1b", on_token=None)
             for line in response.iter_lines(decode_unicode=True):
                 if not line:
                     continue
+                if provider == "lmstudio":
+                    if line.startswith("data: "):
+                        line = line[6:]
+                    if line.strip() == "[DONE]":
+                        break
                 try:
                     data = json.loads(line)
                 except Exception:
                     continue
 
-                if "message" in data and "content" in data["message"]:
-                    token = data["message"]["content"]
+                if provider == "ollama":
+                    if "message" in data and "content" in data["message"]:
+                        token = data["message"]["content"]
+                    else:
+                        token = None
+                    if data.get("done", False):
+                        done = True
+                    else:
+                        done = False
+                else:
+                    choices = data.get("choices", [])
+                    delta = choices[0].get("delta", {}) if choices else {}
+                    token = delta.get("content")
+                    done = False
+
+                if token:
                     # small random perturbation: sometimes skip or modify token
                     if random.random() < 0.02:
                         token = token[::-1]  # tiny mutation
@@ -260,7 +307,7 @@ def gemma3_generate(prompt: str, history=None, model="gemma3:1b", on_token=None)
                     if on_token:
                         on_token(token)
 
-                if data.get("done", False):
+                if done:
                     break
 
         return full_text.strip()
@@ -1345,7 +1392,7 @@ async def play_intro_video(core, path="intro.mp4"):
         return
 
     try:
-        clip = mp.VideoFileClip(path)
+        clip = VideoFileClip(path)
         if clip.audio:
             clip.audio.write_audiofile("intro_audio.wav", verbose=False, logger=None)
             sound = pygame.mixer.Sound("intro_audio.wav")
