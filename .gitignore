@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Build artifacts
+build/
+dist/
+packaging/icon.icns
+packaging/icon.ico
+packaging/icon.iconset/
+packaging/icon_1024.png
+packaging/InfiniteNovel/
+
+# Runtime data
+dataset/
+
+# Intro frame caches
+intro_audio.wav
+
+# macOS
+.DS_Store

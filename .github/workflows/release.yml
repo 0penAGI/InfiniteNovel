@@ -1,0 +1,136 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version override (e.g. 0.3.0). Defaults to tag."
+        required: false
+
+jobs:
+  release-info:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.info.outputs.version }}
+      tag: ${{ steps.info.outputs.tag }}
+    steps:
+      - id: info
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            version="${GITHUB_REF#refs/tags/v}"
+            echo "version=${version}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=0.2.0" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-macos:
+    needs: release-info
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Generate icons
+        run: python packaging/make_icon.py
+
+      - name: Build app bundle
+        run: pyinstaller --noconfirm --distpath dist --clean packaging/InfiniteNovel.spec
+
+      - name: Build DMG installer
+        run: bash packaging/build_dmg.sh ${{ needs.release-info.outputs.version }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: infinite-novel-macos
+          path: dist/*.dmg
+
+  build-windows:
+    needs: release-info
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Generate icons
+        run: python packaging/make_icon.py
+
+      - name: Build exe
+        run: pyinstaller --noconfirm --distpath dist --workpath build --clean packaging/InfiniteNovel.spec
+
+      - name: Install Inno Setup
+        shell: powershell
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path packaging\InfiniteNovel | Out-Null
+          Copy-Item -Recurse -Force dist\InfiniteNovel\* packaging\InfiniteNovel\
+          $version = "${{ needs.release-info.outputs.version }}"
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=$version packaging\InfiniteNovel.iss
+          Get-ChildItem dist\*.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: infinite-novel-windows
+          path: dist/*Setup.exe
+
+  release:
+    needs: [release-info, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Infinite Novel ${{ needs.release-info.outputs.version }}"
+          body: |
+            ## Infinite Novel ${{ needs.release-info.outputs.version }}
+
+            Fresh desktop installers for macOS and Windows.
+
+            ### What's inside
+            - One-click desktop app installers
+            - Auto-imports the local Ollama Gemma model on first launch
+            - Stable Diffusion 1.5 + Tacotron2 TTS download on first run
+
+            ### Install
+            - **macOS**: mount the .dmg, drag "Infinite Novel" into Applications
+            - **Windows**: run the Setup.exe and follow the wizard
+
+            ### Requirements
+            - [Ollama](https://ollama.com) running locally
+            - 16GB RAM / ~8GB VRAM (Apple Silicon 16GB+ works)
+          draft: false
+          prerelease: true
+          files: artifacts/**/*

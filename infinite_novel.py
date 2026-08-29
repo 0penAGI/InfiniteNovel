@@ -60,11 +60,12 @@ clock = pygame.time.Clock()
 TEXT_TOP_OFFSET = int(SCREEN_HEIGHT * 0.08)
 INPUT_BOTTOM_MARGIN = int(SCREEN_HEIGHT * 0.12)
 
-# Which technology, gpu or cpu?
+#
+# Select the compute device
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-logging.info(f"Используется устройство: {device}")
+logging.info(f"Using device: {device}")
 
-# Global pull 
+# Global executors
 executor = ThreadPoolExecutor(max_workers=2)
 
 # Stable Diffusion
@@ -77,14 +78,14 @@ try:
     pipe.enable_attention_slicing()
     pipe.safety_checker = None
 except Exception as e:
-    logging.error(f"Error Download Stable Diffusion: {e}")
+    logging.error(f"Error loading Stable Diffusion: {e}")
     pipe = None
 
-# TTS с HiFi-GAN вокодером
+# TTS with HiFi-GAN vocoder
 try:
     tts = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=False, gpu=(device == "cuda"))
 except Exception as e:
-    logging.error(f"Error Downloadи TTS: {e}")
+    logging.error(f"Error loading TTS: {e}")
     tts = None
 
 # Mood analysis
@@ -95,7 +96,7 @@ try:
         device=0 if device == "cuda" else -1
     )
 except Exception as e:
-    logging.error(f"Error Download sentiment-analyzer: {e}")
+    logging.error(f"Error loading sentiment analyzer: {e}")
     sentiment_analyzer = None
 
 def sanitize_tts(text):
@@ -119,7 +120,7 @@ def render_bold_wrapped(text, font, color, screen, x, y, line_spacing, max_width
     if max_width is None:
         max_width = screen.get_width() - x * 2
 
-    # рисуем на отдельный surface, чтобы потом маску наложить
+    # draw on a separate surface so the mask can be applied later
     text_surface = pygame.Surface((screen.get_width(), screen.get_height()), pygame.SRCALPHA)
     
     for i, part in enumerate(parts):
@@ -296,109 +297,66 @@ class NarrativeFlowPredictor:
 
 
 class StoryDirector:
+    """Свободный сюжетный слой: Gemma принимает решения, память держит причинность."""
     def __init__(self):
-        self.arc = "awakening"
+        self.arc = "emergent"  # оставлено для совместимости визуального слоя
         self.beat = 0
         self.flags = set()
         self.history = []
         self.thread_influence = defaultdict(float)
-        self.last_visual_context = {}
-        self.conversation_memory = collections.deque(maxlen=500)  # persist longer conversation
-        self.player_profile = collections.deque(maxlen=500)       # persist more player actions
-        # Add NarrativeFlowPredictor for story state tracking and plot suggestions
-        self.narrative_flow = NarrativeFlowPredictor()
+        self.conversation_memory = collections.deque(maxlen=500)
+        self.player_profile = collections.deque(maxlen=500)
 
     def advance_arc(self, impact, mood, threads=None, visual=None):
-        thread_boost = sum(min(v, 1.0) for v in threads.values()) * 0.1 if threads else 0.0
-        visual_boost = (visual.get("contrast", 0) + visual.get("edges", 0)) * 0.1 if visual else 0.0
-        total_impact = impact + thread_boost + visual_boost
-        if self.arc == "awakening" and (total_impact > 0.12 or mood > 0.18):
-            self.arc = "convergence"
-        elif self.arc == "convergence" and (total_impact < -0.12):
-            self.arc = "rupture"
-        elif self.arc == "rupture" and (total_impact > 0.22):
-            self.arc = "synthesis"
+        # Никаких переходов awakening/convergence/rupture/synthesis:
+        # состояние мира теперь формируется самой моделью из контекста.
+        return self.arc
 
     def next_beat(self, intent, threads=None):
         self.beat += 1
-        self.history.append((self.arc, self.beat, intent))
-        if len(self.history) > 20:
+        self.history.append({"beat": self.beat, "intent": intent})
+        if len(self.history) > 40:
             self.history.pop(0)
         if threads:
-            for k, v in threads.items():
-                self.thread_influence[k] += v * 0.1
-                if self.thread_influence[k] > 1.0:
-                    self.thread_influence[k] = 1.0
-        # Update narrative flow history
-        self.update_story_history(self.arc, intent)
+            for key, value in threads.items():
+                self.thread_influence[key] += value * 0.1
 
     def respond(self, intent, mood, resonance, core):
-        self.player_profile.append({"role": "player", "content": intent})
-
-        top_threads = sorted(core.memory["threads"].items(), key=lambda x: -x[1])[:3]
-        threads_str = ", ".join(f"{k}({v:.1f})" for k, v in top_threads) if top_threads else "none"
-        recent_events = core.memory["events"][-3:]
-        events_str = " → ".join(e["action"] for e in recent_events) if recent_events else "beginning"
-        collapse = core.world_state["collapse"]
-        instability = core.world_state["instability"]
-        locks = list(core.world_state["locks"])
-
+        self.player_profile.append({"role": "user", "content": intent})
+        top_threads = sorted(core.memory["threads"].items(), key=lambda x: -x[1])[:8]
+        recent_events = core.memory["events"][-8:]
         context = (
-            f"Story Arc: {self.arc}\n"
-            f"Active Threads: {threads_str}\n"
-            f"Recent Events: {events_str}\n"
-            f"World State: collapse={collapse:.1f}, instability={instability:.1f}, locks={locks}\n"
-            f"Mood: {mood:.2f} | Resonance: {resonance:.2f}\n"
-            f"Player Action: {intent}\n\n"
-            f"Respond as the world itself, what knews everything. remembering the player's past actions. Be human, shortly direct, emotional. 1-2 sentences. Need to choose. Sometimes ask an UNCOMFORTABLE queston."
+            "You are an autonomous narrative engine for an interactive game. "
+            "Do not follow a predefined arc, genre template, or scene list. "
+            "Choose for yourself what changes in the world, who acts, and what conflict emerges.\n"
+            f"Turn: {self.beat}\n"
+            f"Active threads: {top_threads or 'none'}\n"
+            f"Recent player actions: {[e['action'] for e in recent_events]}\n"
+            f"World state: {core.world_state}\n"
+            f"Mood: {mood:.2f}; resonance: {resonance:.2f}\n"
+            f"New player action: {intent}\n\n"
+            "Respond in English in 2-4 vivid sentences. Describe a concrete consequence of the "
+            "player action, preserve world continuity, and end with a meaningful choice or question. "
+            "Never mention prompts, models, story arcs, or narrative templates."
         )
-
         self.conversation_memory.append({"role": "user", "content": context})
-
         streamed_text = ""
-
-        def _on_token(tok):
+        def _on_token(token):
             nonlocal streamed_text
-            streamed_text += tok
+            streamed_text += token
             core.set_dialogue(streamed_text)
-
         text = gemma3_generate(
             context,
             history=list(self.conversation_memory) + list(self.player_profile),
             on_token=_on_token
-        )
-        # Introduce randomness and variation to the assistant's response
-        if random.random() < 0.25:  # 25% chance to add a narrative twist
-            twists = [
-                "An unexpected anomaly appears in the network.",
-                "A hidden force shifts the balance of power.",
-                "A fleeting echo whispers secrets of the void.",
-                "The very structure of reality trembles subtly."
-            ]
-            text += " " + random.choice(twists)
-
-        # Append with variation
+        ).strip()
+        if not text:
+            text = "The world does not answer in words, but the consequences have already begun. What will you change next?"
         self.conversation_memory.append({"role": "assistant", "content": text})
-
-        return text.strip()
-
-    # --- NarrativeFlowPredictor integration ---
-    def update_story_history(self, state, intent):
-        """
-        Update the narrative flow predictor with the current story state and intent.
-        """
-        if hasattr(self, "narrative_flow") and self.narrative_flow:
-            self.narrative_flow.update(state, intent)
+        return text
 
     def predict_narrative_flow(self):
-        """
-        Use the narrative flow predictor to suggest the next plot development.
-        Returns a suggestion string or None.
-        """
-        if hasattr(self, "narrative_flow") and self.narrative_flow:
-            return self.narrative_flow.predict()
         return None
-
 
 
 # Core
@@ -1385,7 +1343,7 @@ async def generate_image(core, prompt, mood_score=0.0):
         return None, 0.0  
 
     last_event = core.world_state.get("last_event", "")
-    arc = getattr(core.story, "arc", "awakening")
+    arc = getattr(core.story, "arc", "emergent")
     image_prompt = f"cinematic sci-fi scene, {arc} arc, {last_event}, emotional, high contrast, no text"
 
     init_image = core.morphing_new_image
@@ -1828,87 +1786,32 @@ def interpret_and_generate_signals(action_text, core):
     return sentiment, score, action_impact, focus, signals
 
 def generate_event(core, action_text, action_impact, focus):
-    # === WORLD ACTS WITHOUT PLAYER ===
+    # Мир может действовать сам, но это не готовая сюжетная сцена:
+    # изменение состояния передаётся Gemma как факт, который она интерпретирует.
     core.world_state["titan_timer"] -= 1
     if core.world_state["titan_timer"] <= 0:
         core.world_state["titan_timer"] = random.randint(80, 140)
         core.world_state["collapse"] += 0.4
-        return (
-            "Megatitan",
-            "The Megatitan acts first. A sector is erased.",
-            "cosmic titan destroying a sector of a neural universe, brutal, cinematic"
-        )
-    # === ACTION LOCKS ===
-    if getattr(core.story, "arc", None) == "rupture" and "create" in action_text:
-        core.world_state["locks"].add("creation")
-        return (
-            "System",
-            "Creation is no longer possible. This path is sealed.",
-            "collapsed void, broken light structures, no hope"
-        )
+        core.world_state["external_pressure"] = True
 
-    # --- Dynamic visual/audio synchronization based on key threads ---
-    # (See main loop for actual modulation; here, just story logic.)
-    core.story.advance_arc(
-        action_impact,
-        core.memory["mood_score"],
-        threads=core.memory["threads"],
-        visual=core.visual_features
-    )
-    core.story.next_beat(action_text, threads=core.memory["threads"])
-
+    if focus:
+        core.world_state["focus"] = focus
+    core.world_state["last_action"] = action_text
     core.pain_level = min(1.0, (core.world_state["collapse"] + core.world_state["instability"]) / 2)
 
+    core.story.advance_arc(action_impact, core.memory["mood_score"], core.memory["threads"], core.visual_features)
+    core.story.next_beat(action_text, threads=core.memory["threads"])
+    narrative_reply = core.story.respond(action_text, core.memory["mood_score"], core.resonance, core)
 
-    narrative_reply = core.story.respond(
-        action_text,
-        core.memory["mood_score"],
-        core.resonance,
-        core
-    )
-
-
-    top_threads = sorted(core.memory["threads"].items(), key=lambda x: -x[1])
-    thread_event = None
-    if top_threads:
-        strongest_thread = top_threads[0][0]
-        thread_event = {
-            "network": "A new network pattern emerges, shifting the balance.",
-            "titan": "The Megatitan stirs, its presence warping reality.",
-            "colossi": "Echoes of the Colossi ripple through the void.",
-            "pulse": "A cosmic pulse resonates, awakening dormant codes.",
-            "fracture": "A fracture spreads, splitting the neural landscape.",
-            "light": "A surge of radiant light illuminates hidden paths.",
-            "dark": "A shroud of darkness envelops a sector.",
-        }.get(strongest_thread, None)
-
-    story_arc = getattr(core.story, "arc", "awakening")
-    world_event = thread_event or {
-        "awakening": "A new node ignites within the network.",
-        "convergence": "Factions draw closer as old boundaries dissolve.",
-        "rupture": "A rupture occurs. One of the paths collapses.",
-        "synthesis": "The world restructures into a more stable form."
-    }[story_arc]
-
-
-    core.memory["world_state"]["last_event"] = world_event  # только для изображения
-    core.memory["world_state"]["arc"] = story_arc
-
-
-    speaker = f"Pulse::{story_arc}"
-
-
-    dialogue = narrative_reply  # игрок слышит только сюжетный диалог
-
-
+    core.memory["world_state"]["last_event"] = narrative_reply
+    core.memory["world_state"]["turn"] = core.story.beat
+    core.memory["world_state"]["arc"] = "emergent"
+    speaker = "Pulse::World"
     image_prompt = (
-        f"cinematic sci-fi scene, {story_arc} arc, "
-        f"{world_event}, "
-        f"{' '.join([k for k, v in top_threads[:1]]) if top_threads else ''}, "
-        f"emotional, high contrast, no text"
+        "cinematic sci-fi scene, a concrete consequence from an autonomous interactive narrative, "
+        f"{narrative_reply}, coherent continuity, emotional, high contrast, no text"
     )
-
-    return speaker, dialogue, image_prompt
+    return speaker, narrative_reply, image_prompt
 
 async def main():
     core = PulseCore()
@@ -1943,7 +1846,7 @@ async def main():
 
 
     asyncio.create_task(speak(core, start_dialogue))
-    speaker = "Pulse::awakening"
+    speaker = "Pulse::World"
 
     image_surface = core.morphing_new_image
     generating = False
@@ -1955,7 +1858,7 @@ async def main():
 
     # === TTL for image display ===
     last_image_time = pygame.time.get_ticks()
-    IMAGE_TTL = 1200  # ms
+    IMAGE_TTL = 12000  # ms
     morph_finished = True
 
     running = True
