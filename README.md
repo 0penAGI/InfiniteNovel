@@ -14,6 +14,28 @@
 
 ---
 
+## 📦 v0.2.0 — Desktop Installers
+
+One-click desktop installers are available from the [latest release](https://github.com/0penAGI/InfiniteNovel/releases/latest):
+
+| Platform | Installer | Install |
+|----------|-----------|---------|
+| macOS (Apple Silicon, arm64) | `InfiniteNovel-0.2.0-macOS-arm64.dmg` | Mount the DMG, drag **Infinite Novel** into Applications |
+| Windows (x64) | `InfiniteNovel-0.2.0-Windows-Setup.exe` | Run the installer and follow the wizard |
+
+The installers bundle a frozen build of the engine — **no Python or pip required**.
+
+**On first launch the game auto-downloads:**
+- `gemma3:1b` into [Ollama](https://ollama.com) (`ollama pull gemma3:1b`)
+- Stable Diffusion 1.5 (~5 GB) into the Hugging Face cache
+- the Tacotron2 TTS voice when first spoken dialogue is generated
+
+**Requirements:** [Ollama](https://ollama.com) running locally, 16 GB RAM, ~8 GB VRAM (Apple Silicon 16 GB works).
+
+> Prefer running from source? Follow the [Quick Start](#-quick-start) below.
+
+---
+
 ## 🌌 What is Infinite Novel?
 
 Infinite Novel is an **AI-powered narrative engine that rejects photorealism** in favor of raw, unstable generation. It's not trying to look perfect — it's trying to feel **alive and broken**.
@@ -552,8 +574,8 @@ Your 8GB GPU is enough. Your imagination is the real engine.
 
 ---
 
-**Version**: 0.1.0-alpha  
-**Last Updated**: January 2025  
+**Version**: 0.2.0  
+**Last Updated**: August 2026  
 **Author**: 0penAGI  
 **Status**: Active Development  
 
