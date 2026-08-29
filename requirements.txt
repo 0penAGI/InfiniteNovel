@@ -30,17 +30,13 @@ moviepy>=1.0.3
 requests>=2.31.0
 aiohttp>=3.8.0
 
-# Async & Parallel Processing
-asyncio
-concurrent.futures
+# Async & Parallel Processing (asyncio, concurrent.futures)
+# Note: these are stdlib in Python 3 and must not be listed here.
 
 # Utility
 regex>=2023.0.0
 protobuf>=4.0.0
 tqdm>=4.65.0
-
-# Development & Logging
-logging
 typing-extensions>=4.5.0
 
 # Optional for better performance

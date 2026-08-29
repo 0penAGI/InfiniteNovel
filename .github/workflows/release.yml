@@ -30,7 +30,7 @@ jobs:
 
   build-macos:
     needs: release-info
-    runs-on: macos-14
+    runs-on: macos-14-xlarge
     steps:
       - uses: actions/checkout@v4
 
