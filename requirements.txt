@@ -39,5 +39,4 @@ protobuf>=4.0.0
 tqdm>=4.65.0
 typing-extensions>=4.5.0
 
-# Optional for better performance
-xformers  # Install separately if using CUDA
+# Optional CUDA acceleration: install xformers separately (not shipped in installers).
